@@ -1,0 +1,1097 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  INVESTIGATOR
+  SUPERVISOR
+  ANALYST
+  AUDITOR
+  READONLY
+}
+
+enum CaseStatus {
+  INTAKE
+  OPEN
+  ACTIVE
+  UNDER_REVIEW
+  PENDING_ACTION
+  CLOSED
+  ARCHIVED
+}
+
+enum CaseType {
+  FRAUD
+  WASTE
+  ABUSE
+  MISCONDUCT
+  WHISTLEBLOWER
+  COMPLIANCE
+  OUTREACH
+  BRIEFING
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  BLOCKED
+}
+
+enum DocumentStatus {
+  DRAFT
+  UPLOADED
+  REVIEWED
+  APPROVED
+  REDACTED
+  ARCHIVED
+}
+
+enum EvidenceStatus {
+  COLLECTED
+  IN_REVIEW
+  VERIFIED
+  DISPUTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  DOCUMENT
+  PHOTO
+  VIDEO
+  AUDIO
+  DIGITAL
+  PHYSICAL
+  TESTIMONY
+  OTHER
+}
+
+enum WorkflowType {
+  CASE_INTAKE
+  INVESTIGATION
+  REVIEW
+  CLOSURE
+  CUSTOM
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum SubjectType {
+  INDIVIDUAL
+  ORGANIZATION
+  DEPARTMENT
+  VENDOR
+  OTHER
+}
+
+enum SubjectRole {
+  COMPLAINANT
+  RESPONDENT
+  WITNESS
+  SUBJECT_OF_INTEREST
+  INFORMANT
+  OTHER
+}
+
+enum NotificationType {
+  CASE_ASSIGNED
+  CASE_UPDATED
+  TASK_ASSIGNED
+  TASK_DUE
+  DOCUMENT_UPLOADED
+  EVIDENCE_ADDED
+  WORKFLOW_ACTION
+  SYSTEM_ALERT
+  ANNOUNCEMENT
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  ASSIGN
+  STATUS_CHANGE
+  ACCESS_DENIED
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           UserRole @default(READONLY)
+  organizationId String?
+  isActive            Boolean  @default(true)
+  failedLoginAttempts Int      @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization            Organization?            @relation(fields: [organizationId], references: [id])
+  sessions                Session[]
+  caseAssignments         CaseAssignment[]
+  caseNotes               CaseNote[]
+  documentComments        DocumentComment[]
+  documentAccessLogs      DocumentAccessLog[]
+  tasks                   Task[]
+  workflowStepActions     WorkflowStepAction[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  auditLogs               AuditLog[]
+  reportRuns              ReportRun[]
+  savedSearches           SavedSearch[]
+  createdCases            Case[]                   @relation("CaseCreatedBy")
+  chainOfCustodyFrom      ChainOfCustody[]         @relation("CustodyFrom")
+  chainOfCustodyTo        ChainOfCustody[]         @relation("CustodyTo")
+  inventoryItems          InventoryItem[]          @relation("InventoryAssignee")
+  calendarReminders       CalendarReminder[]
+  passwordResetTokens     PasswordResetToken[]
+  timeEntries             TimeEntry[]              @relation("TimeEntryUser")
+  approvedTimeEntries     TimeEntry[]              @relation("TimeEntryApprover")
+  timesheets              Timesheet[]              @relation("TimesheetUser")
+  approvedTimesheets      Timesheet[]              @relation("TimesheetApprover")
+  trainingRecords         TrainingRecord[]
+  trainingAssignments     TrainingAssignment[]     @relation("TrainingAssigner")
+  assignedInquiries       PreliminaryInquiry[]     @relation("InquiryAssignee")
+  checklistCompletions    CloseChecklist[]         @relation("ChecklistCompleter")
+  approvedDocuments       Document[]               @relation("DocumentApprover")
+
+  @@index([email])
+  @@index([organizationId])
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Case {
+  id            String     @id @default(cuid())
+  caseNumber    String     @unique
+  title         String
+  description   String?
+  caseType      CaseType
+  status        CaseStatus @default(INTAKE)
+  priority      Priority   @default(MEDIUM)
+  createdById   String
+  organizationId String?
+  openedAt      DateTime   @default(now())
+  closedAt      DateTime?
+  dueDate       DateTime?
+  jurisdiction    String?    // "STATE" or "FEDERAL"
+  partnerAgencies String?    // comma-separated agency names
+  leadAgency      String?
+  complaintSource       String?    // HOTLINE, CONGRESSIONAL, REFERRAL, PROACTIVE, MANAGEMENT, AUDIT, FOIA, OTHER
+  crimeType             String?    // specific crime type
+  investigationApproach String?    // PROACTIVE or REACTIVE
+  affectedProgram       String?    // which program is affected
+  suspectType           String?    // EMPLOYEE, CONTRACTOR, VENDOR, OTHER
+  isLocked      Boolean    @default(false)
+  lockedAt      DateTime?
+  lockedBy      String?
+  followUpOnly       Boolean  @default(false)
+  hasPendingFollowUp Boolean  @default(false)
+  followUpDate       DateTime?
+  followUpNotes      String?
+  followUpStatus     String?
+  isDraft            Boolean  @default(false)
+  deletedAt          DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  createdBy          User                @relation("CaseCreatedBy", fields: [createdById], references: [id])
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
+  subjects           CaseSubject[]
+  relationshipsFrom  CaseRelationship[]  @relation("CaseRelFrom")
+  relationshipsTo    CaseRelationship[]  @relation("CaseRelTo")
+  assignments        CaseAssignment[]
+  statusHistory      CaseStatusHistory[]
+  notes              CaseNote[]
+  documents          Document[]
+  evidenceItems      EvidenceItem[]
+  tasks              Task[]
+  workflowInstances  WorkflowInstance[]
+  violations         Violation[]
+  financialResults   FinancialResult[]
+  techniques         InvestigativeTechnique[]
+  referrals          Referral[]
+  subjectActions     SubjectAction[]
+  inventoryItems     InventoryItem[]
+  calendarReminders  CalendarReminder[]
+  timeEntries        TimeEntry[]
+  preliminaryInquiry PreliminaryInquiry? @relation("InquiryCase")
+  closeChecklist     CloseChecklist[]
+
+  @@index([caseNumber])
+  @@index([status])
+  @@index([caseType])
+  @@index([priority])
+  @@index([createdById])
+  @@index([organizationId])
+  @@index([openedAt])
+}
+
+model CaseSubject {
+  id        String      @id @default(cuid())
+  caseId    String
+  subjectId String
+  role      SubjectRole @default(SUBJECT_OF_INTEREST)
+  notes     String?
+  createdAt DateTime    @default(now())
+
+  case    Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([caseId, subjectId])
+  @@index([caseId])
+  @@index([subjectId])
+}
+
+model Subject {
+  id          String      @id @default(cuid())
+  type        SubjectType @default(INDIVIDUAL)
+  firstName   String?
+  lastName    String?
+  orgName     String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+  parentId    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  parent           Subject?          @relation("SubjectHierarchy", fields: [parentId], references: [id])
+  children         Subject[]         @relation("SubjectHierarchy")
+  caseSubjects     CaseSubject[]
+  violations       Violation[]
+  financialResults FinancialResult[]
+  subjectActions   SubjectAction[]
+
+  @@index([type])
+  @@index([email])
+  @@index([lastName])
+  @@index([parentId])
+}
+
+model CaseRelationship {
+  id           String   @id @default(cuid())
+  fromCaseId   String
+  toCaseId     String
+  relationship String
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  fromCase Case @relation("CaseRelFrom", fields: [fromCaseId], references: [id], onDelete: Cascade)
+  toCase   Case @relation("CaseRelTo", fields: [toCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([fromCaseId, toCaseId])
+  @@index([fromCaseId])
+  @@index([toCaseId])
+}
+
+model CaseAssignment {
+  id         String   @id @default(cuid())
+  caseId     String
+  userId     String
+  role       String   @default("investigator")
+  assignedAt DateTime @default(now())
+  removedAt  DateTime?
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([caseId, userId])
+  @@index([caseId])
+  @@index([userId])
+}
+
+model CaseStatusHistory {
+  id         String     @id @default(cuid())
+  caseId     String
+  fromStatus CaseStatus?
+  toStatus   CaseStatus
+  changedBy  String
+  reason     String?
+  createdAt  DateTime   @default(now())
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([createdAt])
+}
+
+model CaseNote {
+  id        String   @id @default(cuid())
+  caseId    String
+  authorId  String
+  content   String
+  isPrivate Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  case   Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([caseId])
+  @@index([authorId])
+}
+
+model Document {
+  id         String         @id @default(cuid())
+  caseId     String?
+  title      String
+  fileName   String
+  fileKey    String
+  mimeType   String
+  fileSize   Int
+  status     DocumentStatus @default(UPLOADED)
+  uploadedBy String
+  receivedAt   DateTime?
+  reviewedAt   DateTime?
+  reviewedById String?
+  // Document versioning (DMR7)
+  version          Int       @default(1)
+  previousVersionId String?
+  // Supervisory approval (CM15)
+  requiresApproval Boolean   @default(false)
+  approvedById     String?
+  approvedAt       DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  case            Case?               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  previousVersion Document?           @relation("DocumentVersions", fields: [previousVersionId], references: [id])
+  nextVersions    Document[]          @relation("DocumentVersions")
+  approvedBy      User?               @relation("DocumentApprover", fields: [approvedById], references: [id])
+  accessLogs      DocumentAccessLog[]
+  comments        DocumentComment[]
+
+  @@index([caseId])
+  @@index([status])
+  @@index([uploadedBy])
+  @@index([previousVersionId])
+}
+
+model DocumentAccessLog {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String
+  action     String
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model DocumentComment {
+  id         String   @id @default(cuid())
+  documentId String
+  authorId   String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id])
+
+  @@index([documentId])
+  @@index([authorId])
+}
+
+model EvidenceItem {
+  id          String         @id @default(cuid())
+  caseId      String
+  type        EvidenceType
+  status      EvidenceStatus @default(COLLECTED)
+  title       String
+  description String?
+  source      String?
+  collectedAt DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  case           Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  chainOfCustody ChainOfCustody[]
+  files          EvidenceFile[]
+
+  @@index([caseId])
+  @@index([type])
+  @@index([status])
+}
+
+model ChainOfCustody {
+  id             String   @id @default(cuid())
+  evidenceItemId String
+  fromUserId     String?
+  toUserId       String
+  action         String
+  notes          String?
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  evidenceItem EvidenceItem @relation(fields: [evidenceItemId], references: [id], onDelete: Cascade)
+  fromUser     User?        @relation("CustodyFrom", fields: [fromUserId], references: [id])
+  toUser       User         @relation("CustodyTo", fields: [toUserId], references: [id])
+
+  @@index([evidenceItemId])
+  @@index([occurredAt])
+}
+
+model EvidenceFile {
+  id             String   @id @default(cuid())
+  evidenceItemId String
+  fileName       String
+  fileKey        String
+  mimeType       String
+  fileSize       Int
+  hash           String?
+  createdAt      DateTime @default(now())
+
+  evidenceItem EvidenceItem @relation(fields: [evidenceItemId], references: [id], onDelete: Cascade)
+
+  @@index([evidenceItemId])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  caseId      String
+  assigneeId  String?
+  title       String
+  description String?
+  status      TaskStatus @default(PENDING)
+  priority    Priority   @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  case     Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  assignee User? @relation(fields: [assigneeId], references: [id])
+
+  @@index([caseId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model WorkflowDefinition {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  type        WorkflowType
+  description String?
+  steps       Json
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  instances WorkflowInstance[]
+
+  @@index([type])
+}
+
+model WorkflowInstance {
+  id           String         @id @default(cuid())
+  definitionId String
+  caseId       String
+  status       WorkflowStatus @default(ACTIVE)
+  currentStep  Int            @default(0)
+  data         Json?
+  startedAt    DateTime       @default(now())
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  definition WorkflowDefinition  @relation(fields: [definitionId], references: [id])
+  case       Case                @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actions    WorkflowStepAction[]
+
+  @@index([definitionId])
+  @@index([caseId])
+  @@index([status])
+}
+
+model WorkflowStepAction {
+  id         String   @id @default(cuid())
+  instanceId String
+  stepIndex  Int
+  action     String
+  userId     String
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  instance WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id])
+
+  @@index([instanceId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id       String           @id @default(cuid())
+  userId   String
+  type     NotificationType
+  email    Boolean          @default(true)
+  inApp    Boolean          @default(true)
+  disabled Boolean          @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  entityType String
+  entityId   String
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model ReportDefinition {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  query       Json
+  columns     Json
+  filters     Json?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  runs      ReportRun[]
+  schedules ReportSchedule[]
+}
+
+model ReportRun {
+  id           String   @id @default(cuid())
+  definitionId String
+  runById      String
+  parameters   Json?
+  resultCount  Int?
+  fileKey      String?
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  definition ReportDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  runBy      User             @relation(fields: [runById], references: [id])
+
+  @@index([definitionId])
+  @@index([runById])
+}
+
+model ReportSchedule {
+  id           String   @id @default(cuid())
+  definitionId String
+  cron         String
+  recipients   Json
+  isActive     Boolean  @default(true)
+  lastRunAt    DateTime?
+  nextRunAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  definition ReportDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@index([definitionId])
+  @@index([isActive])
+}
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  query     Json
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
+model ReferenceData {
+  id        String   @id @default(cuid())
+  category  String
+  code      String
+  label     String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, code])
+  @@index([category])
+  @@index([isActive])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  shortName String?
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+  cases Case[]
+
+  @@index([name])
+}
+
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  priority    Priority  @default(MEDIUM)
+  isActive    Boolean   @default(true)
+  publishedAt DateTime  @default(now())
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([publishedAt])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  isEnabled   Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([isEnabled])
+}
+
+// ─── Violations & Financial Results ─────────────────────
+
+model Violation {
+  id          String   @id @default(cuid())
+  caseId      String
+  subjectId   String
+  type        String   // e.g., FRAUD, ETHICS_VIOLATION, CONDUCT, CRIMINAL, REGULATORY
+  title       String
+  description String?
+  status      String   @default("PENDING") // PENDING, SUBSTANTIATED, UNSUBSTANTIATED, REFERRED
+  disposition String?  // plea, verdict, adjudication result
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  case    Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@index([caseId])
+  @@index([subjectId])
+}
+
+model FinancialResult {
+  id               String   @id @default(cuid())
+  caseId           String
+  subjectId        String?
+  type             String   // RECOVERY, FINE, PENALTY, RESTITUTION, SAVINGS, COST_AVOIDANCE
+  amount           Float
+  description      String?
+  status           String   @default("PENDING") // PENDING, APPROVED, COLLECTED, DISPUTED
+  resultDate       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  case    Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  subject Subject? @relation(fields: [subjectId], references: [id])
+
+  @@index([caseId])
+  @@index([subjectId])
+}
+
+// ─── Investigative Techniques (CM10) ────────────────────
+
+model InvestigativeTechnique {
+  id           String    @id @default(cuid())
+  caseId       String
+  type         String    // INTERVIEW, SURVEILLANCE, SUBPOENA, SEARCH_WARRANT, WIRETAP, DOCUMENT_REVIEW, DIGITAL_FORENSICS, UNDERCOVER, FIELD_VISIT, OTHER
+  description  String
+  date         DateTime
+  endDate      DateTime?
+  status       String    @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  authorizedBy String?
+  findings     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([type])
+}
+
+// ─── Referrals (CM22) ───────────────────────────────────
+
+model Referral {
+  id           String   @id @default(cuid())
+  caseId       String
+  agencyName   String
+  agencyType   String   // FEDERAL, STATE, LOCAL, INTERNATIONAL
+  contactName  String?
+  contactEmail String?
+  referralDate DateTime @default(now())
+  reason       String
+  status       String   @default("PENDING") // PENDING, ACCEPTED, DECLINED, COMPLETED
+  outcome      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+// ─── Subject Actions (CM29/CM30/CM31) ───────────────────
+
+model SubjectAction {
+  id            String    @id @default(cuid())
+  caseId        String
+  subjectId     String
+  category      String    // ADMINISTRATIVE, LEGAL, SENTENCING
+  type          String    // e.g., SUSPENSION, TERMINATION, DEMOTION, INDICTMENT, CONVICTION, FINE, RESTITUTION, PROBATION, etc.
+  description   String?
+  status        String    @default("PENDING") // PENDING, APPROVED, IMPLEMENTED, APPEALED, COMPLETED
+  effectiveDate DateTime?
+  expiryDate    DateTime?
+  amount        Float?    // for fines, restitution amounts
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  case    Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@index([caseId])
+  @@index([subjectId])
+}
+
+// ─── Inventory (AF6/CM48) ──────────────────────────────
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  type           String   // EVIDENCE, EQUIPMENT, PROPERTY
+  name           String
+  description    String?
+  serialNumber   String?
+  barcode        String?
+  status         String   @default("AVAILABLE") // AVAILABLE, ASSIGNED, IN_USE, LOST, RETIRED
+  assignedToId   String?
+  caseId         String?
+  location       String?
+  region         String?
+  acquiredDate   DateTime?
+  condition      String?  // NEW, GOOD, FAIR, POOR
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assignedTo User? @relation("InventoryAssignee", fields: [assignedToId], references: [id])
+  case       Case? @relation(fields: [caseId], references: [id])
+
+  @@index([assignedToId])
+  @@index([caseId])
+  @@index([type])
+  @@index([status])
+}
+
+// ─── Calendar Reminders (CM43) ─────────────────────────
+
+model CalendarReminder {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  description String?
+  date       DateTime
+  isRecurring Boolean @default(false)
+  frequency  String?  // DAILY, WEEKLY, MONTHLY, QUARTERLY, SEMIANNUAL, ANNUAL
+  caseId     String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  case Case? @relation(fields: [caseId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+}
+
+// ─── Password Reset Tokens (Security) ─────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// ─── Time & Labor Tracking ────────────────────────────────
+
+model TimeEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  caseId       String?
+  activityType String   // CASE_WORK, TRAINING, ADMIN, TRAVEL, OVERTIME, UNDERCOVER, COURT, LEAVE, OTHER
+  description  String?
+  date         DateTime
+  hours        Float
+  isOvertime   Boolean  @default(false)
+  isLeap       Boolean  @default(false)  // Law Enforcement Availability Pay
+  status       String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
+  approvedById String?
+  approvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User  @relation("TimeEntryUser", fields: [userId], references: [id])
+  approvedBy User? @relation("TimeEntryApprover", fields: [approvedById], references: [id])
+  case       Case? @relation(fields: [caseId], references: [id])
+
+  @@index([userId])
+  @@index([caseId])
+  @@index([date])
+  @@index([status])
+}
+
+model Timesheet {
+  id        String   @id @default(cuid())
+  userId    String
+  periodStart DateTime
+  periodEnd   DateTime
+  totalHours  Float    @default(0)
+  overtimeHours Float  @default(0)
+  leapHours   Float    @default(0)
+  status      String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
+  submittedAt DateTime?
+  approvedById String?
+  approvedAt   DateTime?
+  certifiedAt  DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User  @relation("TimesheetUser", fields: [userId], references: [id])
+  approvedBy User? @relation("TimesheetApprover", fields: [approvedById], references: [id])
+
+  @@index([userId])
+  @@index([periodStart])
+  @@index([status])
+}
+
+// ─── Training Management ─────────────────────────────────
+
+model TrainingCourse {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  provider     String?
+  category     String?  // ETHICS, FIREARMS, LEGAL, TECHNICAL, LEADERSHIP, SAFETY, OTHER
+  method       String?  // CLASSROOM, ONLINE, IN_PERSON, BLENDED
+  duration     Float?   // hours
+  credits      Float?
+  isRequired   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  records      TrainingRecord[]
+  assignments  TrainingAssignment[]
+
+  @@index([category])
+  @@index([isRequired])
+}
+
+model TrainingRecord {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId         String
+  completionDate  DateTime?
+  expirationDate  DateTime?
+  status          String   @default("ENROLLED") // ENROLLED, IN_PROGRESS, COMPLETED, FAILED, EXPIRED
+  score           Float?
+  hours           Float?
+  certificateKey  String?  // MinIO file key for uploaded certificate
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user   User           @relation(fields: [userId], references: [id])
+  course TrainingCourse @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([expirationDate])
+}
+
+model TrainingAssignment {
+  id           String   @id @default(cuid())
+  courseId      String
+  assignedTo   String   // Can be userId, role name, or group name
+  assigneeType String   // USER, ROLE, GROUP
+  dueDate      DateTime?
+  assignedById String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  course     TrainingCourse @relation(fields: [courseId], references: [id])
+  assignedBy User           @relation("TrainingAssigner", fields: [assignedById], references: [id])
+
+  @@index([courseId])
+  @@index([assignedTo])
+}
+
+// ─── Preliminary Inquiry (Hotline / Whistleblower / Public Intake) ───
+
+model PreliminaryInquiry {
+  id              String   @id @default(cuid())
+  inquiryNumber   String   @unique
+  source          String   // HOTLINE, WHISTLEBLOWER, CARRIER, CONGRESSIONAL, WALK_IN, EMAIL, OTHER
+  status          String   @default("NEW") // NEW, UNDER_REVIEW, CONVERTED, CLOSED
+  complainantName String?
+  complainantEmail String?
+  complainantPhone String?
+  isAnonymous     Boolean  @default(false)
+  subject         String
+  description     String
+  category        String?
+  priority        String   @default("MEDIUM")
+  assignedToId    String?
+  convertedCaseId String?  @unique
+  responseMessage String?
+  receivedAt      DateTime @default(now())
+  closedAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignedTo    User? @relation("InquiryAssignee", fields: [assignedToId], references: [id])
+  convertedCase Case? @relation("InquiryCase", fields: [convertedCaseId], references: [id])
+
+  @@index([source])
+  @@index([status])
+  @@index([inquiryNumber])
+  @@index([assignedToId])
+}
+
+// ─── Close Checklist (CM41/CM40) ─────────────────────────
+
+model CloseChecklist {
+  id            String    @id @default(cuid())
+  caseId        String
+  item          String
+  isRequired    Boolean   @default(true)
+  isCompleted   Boolean   @default(false)
+  completedById String?
+  completedAt   DateTime?
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  case        Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  completedBy User? @relation("ChecklistCompleter", fields: [completedById], references: [id])
+
+  @@index([caseId])
+}
