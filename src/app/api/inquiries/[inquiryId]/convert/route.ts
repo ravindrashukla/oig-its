@@ -70,59 +70,57 @@ export async function POST(
   // Allow title override
   const caseTitle = (bodyData.title as string) || inquiry.subject;
 
-  // Create the case and update inquiry in a transaction
-  const [newCase] = await prisma.$transaction([
-    prisma.case.create({
-      data: {
-        caseNumber,
-        title: caseTitle,
-        description: `Converted from inquiry ${inquiry.inquiryNumber}.\n\n${inquiry.description}`,
-        caseType: caseType as any,
-        priority: priority as any,
-        complaintSource: inquiry.source,
-        createdById: userId,
+  // Create the case first, then update inquiry with case ID
+  const newCase = await prisma.case.create({
+    data: {
+      caseNumber,
+      title: caseTitle,
+      description: `Converted from inquiry ${inquiry.inquiryNumber}.\n\n${inquiry.description}`,
+      caseType: caseType as any,
+      priority: priority as any,
+      complaintSource: inquiry.source,
+      createdById: userId,
+      assignments: {
+        create: {
+          userId,
+          role: "lead_investigator",
+          assignedAt: new Date(),
+        },
       },
-      include: {
-        assignments: {
-          where: { removedAt: null },
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                role: true,
-              },
+    },
+    include: {
+      assignments: {
+        where: { removedAt: null },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
             },
           },
         },
-        createdBy: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        _count: {
-          select: {
-            tasks: true,
-            documents: true,
-            evidenceItems: true,
-            notes: true,
-          },
+      },
+      createdBy: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+      _count: {
+        select: {
+          tasks: true,
+          documents: true,
+          evidenceItems: true,
+          notes: true,
         },
       },
-    }),
-    prisma.preliminaryInquiry.update({
-      where: { id: inquiryId },
-      data: {
-        status: "CONVERTED",
-        convertedCaseId: undefined, // will be set below
-      },
-    }),
-  ]);
+    },
+  });
 
-  // Update inquiry with convertedCaseId (needs the created case id)
   await prisma.preliminaryInquiry.update({
     where: { id: inquiryId },
     data: {
+      status: "CONVERTED",
       convertedCaseId: newCase.id,
     },
   });
@@ -158,19 +156,16 @@ async function generateCaseNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `OIG-${year}-`;
 
-  const latest = await prisma.case.findFirst({
+  const allCases = await prisma.case.findMany({
     where: { caseNumber: { startsWith: prefix } },
-    orderBy: { caseNumber: "desc" },
     select: { caseNumber: true },
   });
 
-  let seq = 1;
-  if (latest) {
-    const lastSeq = parseInt(latest.caseNumber.replace(prefix, ""), 10);
-    if (!isNaN(lastSeq)) {
-      seq = lastSeq + 1;
-    }
+  let maxSeq = 0;
+  for (const c of allCases) {
+    const seq = parseInt(c.caseNumber.replace(prefix, ""), 10);
+    if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
   }
 
-  return `${prefix}${String(seq).padStart(5, "0")}`;
+  return `${prefix}${String(maxSeq + 1).padStart(5, "0")}`;
 }

@@ -14,21 +14,18 @@ async function generateCaseNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `OIG-${year}-`;
 
-  const latest = await prisma.case.findFirst({
+  const allCases = await prisma.case.findMany({
     where: { caseNumber: { startsWith: prefix } },
-    orderBy: { caseNumber: "desc" },
     select: { caseNumber: true },
   });
 
-  let seq = 1;
-  if (latest) {
-    const lastSeq = parseInt(latest.caseNumber.replace(prefix, ""), 10);
-    if (!isNaN(lastSeq)) {
-      seq = lastSeq + 1;
-    }
+  let maxSeq = 0;
+  for (const c of allCases) {
+    const seq = parseInt(c.caseNumber.replace(prefix, ""), 10);
+    if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
   }
 
-  return `${prefix}${String(seq).padStart(5, "0")}`;
+  return `${prefix}${String(maxSeq + 1).padStart(5, "0")}`;
 }
 
 interface ImportCaseInput {
