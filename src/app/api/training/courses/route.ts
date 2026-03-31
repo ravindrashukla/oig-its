@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { title, description, provider, category, method, duration, credits, isRequired } = body;
+  const { title, description, provider, category, method, duration, credits, isRequired, isRepeating, repeatInterval } = body;
 
   if (!title || typeof title !== "string" || title.trim().length === 0) {
     return Response.json({ error: "Title is required" }, { status: 422 });
@@ -118,6 +118,8 @@ export async function POST(request: Request) {
       duration: duration != null ? Number(duration) : null,
       credits: credits != null ? Number(credits) : null,
       isRequired: isRequired === true,
+      isRepeating: isRepeating === true,
+      repeatInterval: repeatInterval || null,
     },
     include: {
       _count: {

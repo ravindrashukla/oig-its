@@ -6,6 +6,12 @@ import { meili, INDEXES } from "@/lib/meilisearch";
 /**
  * GET /api/search?q=...&index=cases&limit=20&offset=0&facets=status,priority
  *
+ * RRS33: Wildcard / partial match support
+ * MeiliSearch supports partial matching (prefix search) by default.
+ * Users do not need to add wildcard characters — partial terms automatically
+ * match from the beginning of words. For example, searching "inv" will match
+ * "investigation", "invoice", "inventory", etc.
+ *
  * Query params:
  *   q       – search query (required, min 1 char)
  *   index   – which index to search: cases | evidence | tasks | documents | all (default: all)

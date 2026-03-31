@@ -11,6 +11,8 @@ import {
   ClipboardList,
   Users,
   StickyNote,
+  Globe,
+  Handshake,
 } from "lucide-react";
 import { useCase } from "@/hooks/useCase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -215,6 +217,45 @@ export default function CaseDetailPage({
               label="Created By"
               value={`${caseData.createdBy.firstName} ${caseData.createdBy.lastName}`}
             />
+            {/* CM33: Jurisdiction, partner agencies, lead agency */}
+            {caseData.jurisdiction && (
+              <>
+                <Separator />
+                <DetailRow
+                  icon={<Globe className="size-3.5" />}
+                  label="Jurisdiction"
+                  value={formatEnum(caseData.jurisdiction)}
+                />
+              </>
+            )}
+            {caseData.leadAgency && (
+              <>
+                <Separator />
+                <DetailRow
+                  icon={<Building2 className="size-3.5" />}
+                  label="Lead Agency"
+                  value={caseData.leadAgency}
+                />
+              </>
+            )}
+            {caseData.partnerAgencies && (
+              <>
+                <Separator />
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Handshake className="size-3.5" />
+                    <span className="text-xs">Partner Agencies</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {caseData.partnerAgencies.split(",").map((agency: string) => (
+                      <Badge key={agency.trim()} variant="outline" className="text-[10px]">
+                        {agency.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, X, FolderOpen, Package, ClipboardList, FileText, Bookmark, Star, Trash2, CalendarDays } from "lucide-react";
+import { Search, X, FolderOpen, Package, ClipboardList, FileText, Bookmark, Star, Trash2, CalendarDays, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 
 import { useSearch, useDebouncedValue, type SearchHit, type SearchIndexResult } from "@/hooks/useSearch";
@@ -39,6 +39,74 @@ const FACET_FIELDS: Record<string, string[]> = {
   tasks: ["status", "priority"],
   documents: ["status"],
 };
+
+// ─── Advanced Search Options ───────────────────────────
+
+const CASE_STATUS_OPTIONS = ["INTAKE", "OPEN", "ACTIVE", "UNDER_REVIEW", "PENDING_ACTION", "CLOSED", "ARCHIVED"];
+const CASE_TYPE_OPTIONS = ["FRAUD", "WASTE", "ABUSE", "MISCONDUCT", "WHISTLEBLOWER", "COMPLIANCE", "OUTREACH", "BRIEFING", "OTHER"];
+const PRIORITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const EVIDENCE_TYPE_OPTIONS = ["DOCUMENT", "PHOTO", "VIDEO", "AUDIO", "DIGITAL", "PHYSICAL", "TESTIMONY", "OTHER"];
+const EVIDENCE_STATUS_OPTIONS = ["COLLECTED", "IN_REVIEW", "VERIFIED", "DISPUTED", "ARCHIVED"];
+const TASK_STATUS_OPTIONS = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED", "BLOCKED"];
+const DOCUMENT_STATUS_OPTIONS = ["DRAFT", "UPLOADED", "REVIEWED", "APPROVED", "REDACTED", "ARCHIVED"];
+
+interface AdvancedFilters {
+  entityType: string;
+  status: string;
+  caseType: string;
+  priority: string;
+  evidenceType: string;
+  titleContains: string;
+  descriptionContains: string;
+  createdFrom: string;
+  createdTo: string;
+}
+
+const EMPTY_ADVANCED: AdvancedFilters = {
+  entityType: "",
+  status: "",
+  caseType: "",
+  priority: "",
+  evidenceType: "",
+  titleContains: "",
+  descriptionContains: "",
+  createdFrom: "",
+  createdTo: "",
+};
+
+function buildAdvancedFilter(adv: AdvancedFilters): { index: string; filter: string; query: string } {
+  const parts: string[] = [];
+  let index = "all";
+
+  if (adv.entityType === "Cases") index = "cases";
+  else if (adv.entityType === "Evidence") index = "evidence";
+  else if (adv.entityType === "Tasks") index = "tasks";
+  else if (adv.entityType === "Documents") index = "documents";
+
+  if (adv.status) {
+    parts.push(`status = "${adv.status}"`);
+  }
+  if (adv.caseType && (index === "cases" || index === "all")) {
+    parts.push(`caseType = "${adv.caseType}"`);
+  }
+  if (adv.priority && (index === "cases" || index === "tasks" || index === "all")) {
+    parts.push(`priority = "${adv.priority}"`);
+  }
+  if (adv.evidenceType && (index === "evidence" || index === "all")) {
+    parts.push(`type = "${adv.evidenceType}"`);
+  }
+
+  // Build text query from title/description contains
+  const queryParts: string[] = [];
+  if (adv.titleContains) queryParts.push(adv.titleContains);
+  if (adv.descriptionContains) queryParts.push(adv.descriptionContains);
+
+  return {
+    index,
+    filter: parts.join(" AND "),
+    query: queryParts.join(" ") || "*",
+  };
+}
 
 function enumLabel(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -186,6 +254,9 @@ export default function SearchPage() {
   const [savedSearchName, setSavedSearchName] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_ADVANCED);
+  const [advancedActive, setAdvancedActive] = useState(false);
 
   const { data: savedSearchesData } = useSavedSearches();
   const createSavedSearch = useCreateSavedSearch();
@@ -201,23 +272,38 @@ export default function SearchPage() {
       filterParts.push(`${field} IN [${valuesStr}]`);
     }
   }
+
+  // Merge advanced search filters when active
+  const advancedResult = advancedActive ? buildAdvancedFilter(advancedFilters) : null;
+  if (advancedResult?.filter) {
+    filterParts.push(advancedResult.filter);
+  }
+
   const filterStr = filterParts.join(" AND ") || undefined;
+
+  // Determine search index - advanced can override
+  const effectiveIndex = advancedActive && advancedResult?.index ? advancedResult.index : activeIndex;
+
+  // Determine effective query - advanced can provide its own
+  const effectiveQuery = advancedActive && advancedResult?.query && advancedResult.query !== "*"
+    ? advancedResult.query
+    : debouncedQuery;
 
   // Determine which facets to request
   const facetFields =
-    activeIndex === "all"
+    effectiveIndex === "all"
       ? undefined
-      : FACET_FIELDS[activeIndex]?.join(",");
+      : FACET_FIELDS[effectiveIndex]?.join(",");
 
   const { data, isLoading } = useSearch(
     {
-      q: debouncedQuery,
-      index: activeIndex,
+      q: effectiveQuery,
+      index: effectiveIndex,
       limit: 20,
       filter: filterStr,
       facets: facetFields,
     },
-    debouncedQuery.length >= 1,
+    effectiveQuery.length >= 1,
   );
 
   // Normalize results
@@ -362,6 +448,11 @@ export default function SearchPage() {
         )}
       </div>
 
+      {/* RRS33: Wildcard search tip */}
+      <p className="text-xs text-muted-foreground -mt-2">
+        Tip: partial matches are automatic. Searching &quot;inv&quot; will find &quot;investigation&quot;, &quot;invoice&quot;, etc.
+      </p>
+
       {/* Date Range Filters */}
       <div className="flex items-end gap-3 max-w-2xl">
         <div className="space-y-1">
@@ -402,6 +493,201 @@ export default function SearchPage() {
           >
             Clear dates
           </Button>
+        )}
+      </div>
+
+      {/* Advanced Search Panel (RRS7) */}
+      <div className="max-w-4xl">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <SlidersHorizontal className="size-4" />
+          Advanced Search
+          {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          {advancedActive && (
+            <Badge variant="secondary" className="text-[10px] ml-1">Active</Badge>
+          )}
+        </button>
+        {advancedOpen && (
+          <Card className="mt-3">
+            <CardContent className="pt-4 space-y-4">
+              {/* Entity Type Selector */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Entity Type</label>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    value={advancedFilters.entityType}
+                    onChange={(e) => setAdvancedFilters((prev) => ({
+                      ...prev,
+                      entityType: e.target.value,
+                      status: "",
+                      caseType: "",
+                      priority: "",
+                      evidenceType: "",
+                    }))}
+                  >
+                    <option value="">All Types</option>
+                    <option value="Cases">Cases</option>
+                    <option value="Evidence">Evidence</option>
+                    <option value="Tasks">Tasks</option>
+                    <option value="Documents">Documents</option>
+                  </select>
+                </div>
+
+                {/* Status - varies by entity type */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <select
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    value={advancedFilters.status}
+                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, status: e.target.value }))}
+                  >
+                    <option value="">Any Status</option>
+                    {(advancedFilters.entityType === "Cases" ? CASE_STATUS_OPTIONS
+                      : advancedFilters.entityType === "Evidence" ? EVIDENCE_STATUS_OPTIONS
+                      : advancedFilters.entityType === "Tasks" ? TASK_STATUS_OPTIONS
+                      : advancedFilters.entityType === "Documents" ? DOCUMENT_STATUS_OPTIONS
+                      : CASE_STATUS_OPTIONS
+                    ).map((s) => (
+                      <option key={s} value={s}>{enumLabel(s)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Case Type - for Cases */}
+                {(!advancedFilters.entityType || advancedFilters.entityType === "Cases") && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Case Type</label>
+                    <select
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      value={advancedFilters.caseType}
+                      onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, caseType: e.target.value }))}
+                    >
+                      <option value="">Any Type</option>
+                      {CASE_TYPE_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{enumLabel(t)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Priority - for Cases and Tasks */}
+                {(!advancedFilters.entityType || advancedFilters.entityType === "Cases" || advancedFilters.entityType === "Tasks") && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Priority</label>
+                    <select
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      value={advancedFilters.priority}
+                      onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, priority: e.target.value }))}
+                    >
+                      <option value="">Any Priority</option>
+                      {PRIORITY_OPTIONS.map((p) => (
+                        <option key={p} value={p}>{enumLabel(p)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Evidence Type - for Evidence */}
+                {advancedFilters.entityType === "Evidence" && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Evidence Type</label>
+                    <select
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      value={advancedFilters.evidenceType}
+                      onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, evidenceType: e.target.value }))}
+                    >
+                      <option value="">Any Type</option>
+                      {EVIDENCE_TYPE_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{enumLabel(t)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Text search fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Title contains</label>
+                  <Input
+                    placeholder="Search in title..."
+                    value={advancedFilters.titleContains}
+                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, titleContains: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Description contains</label>
+                  <Input
+                    placeholder="Search in description..."
+                    value={advancedFilters.descriptionContains}
+                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, descriptionContains: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+
+              {/* Date range for created/opened */}
+              <div className="flex items-end gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Created From</label>
+                  <Input
+                    type="date"
+                    value={advancedFilters.createdFrom}
+                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, createdFrom: e.target.value }))}
+                    className="h-9 w-40"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Created To</label>
+                  <Input
+                    type="date"
+                    value={advancedFilters.createdTo}
+                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, createdTo: e.target.value }))}
+                    className="h-9 w-40"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const result = buildAdvancedFilter(advancedFilters);
+                    if (result.index !== "all") {
+                      setActiveIndex(result.index);
+                    }
+                    // Set query from title/description if main query is empty
+                    if (!query && result.query !== "*") {
+                      setQuery(result.query);
+                    }
+                    // Set date range from advanced
+                    if (advancedFilters.createdFrom) setDateFrom(advancedFilters.createdFrom);
+                    if (advancedFilters.createdTo) setDateTo(advancedFilters.createdTo);
+                    setAdvancedActive(true);
+                  }}
+                >
+                  <Search className="size-3.5 mr-1.5" />
+                  Search
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAdvancedFilters(EMPTY_ADVANCED);
+                    setAdvancedActive(false);
+                  }}
+                >
+                  Clear Advanced
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 

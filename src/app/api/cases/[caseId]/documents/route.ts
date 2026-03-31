@@ -100,6 +100,7 @@ export async function GET(
       take: pageSize,
       include: {
         _count: { select: { comments: true, accessLogs: true } },
+        attachments: { orderBy: { sortOrder: "asc" } },
       },
     }),
     prisma.document.count({ where }),
@@ -222,6 +223,37 @@ export async function POST(
     },
   });
 
+  // CM20: Handle multi-file attachments
+  const attachmentFiles = formData.getAll("attachments") as File[];
+  const createdAttachments: Array<{ fileName: string; fileSize: number }> = [];
+  for (let i = 0; i < attachmentFiles.length; i++) {
+    const attachment = attachmentFiles[i];
+    if (!(attachment instanceof File) || attachment.size === 0) continue;
+
+    if (attachment.size > MAX_FILE_SIZE) {
+      continue; // skip oversized attachments
+    }
+    if (!ALLOWED_MIME_TYPES.has(attachment.type)) {
+      continue; // skip disallowed types
+    }
+
+    const attBuffer = Buffer.from(await attachment.arrayBuffer());
+    const attFileKey = buildFileKey(caseId, `att_${i}_${attachment.name}`);
+    await uploadFile(attFileKey, attBuffer, attachment.type);
+
+    await prisma.documentAttachment.create({
+      data: {
+        documentId: document.id,
+        fileName: attachment.name,
+        fileKey: attFileKey,
+        mimeType: attachment.type,
+        fileSize: attachment.size,
+        sortOrder: i,
+      },
+    });
+    createdAttachments.push({ fileName: attachment.name, fileSize: attachment.size });
+  }
+
   // CM15: Notify supervisors if approval is required
   if (requiresApproval) {
     const supervisors = await prisma.caseAssignment.findMany({
@@ -269,6 +301,8 @@ export async function POST(
       version,
       previousVersionId,
       requiresApproval,
+      attachmentCount: createdAttachments.length,
+      attachments: createdAttachments,
     },
   });
 

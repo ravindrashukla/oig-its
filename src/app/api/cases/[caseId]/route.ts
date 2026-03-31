@@ -400,6 +400,60 @@ export async function PATCH(
     });
   });
 
+  // ─── CM35: Auto-routing rules on status change ────────────
+  if (data.status && data.status !== existingCase.status) {
+    try {
+      const routingSettings = await prisma.systemSetting.findMany({
+        where: { key: { startsWith: "ROUTING_RULE_" } },
+      });
+
+      for (const setting of routingSettings) {
+        const rule = setting.value as Record<string, unknown>;
+        if (rule.fromStatus === existingCase.status && rule.toStatus === data.status) {
+          // Auto-assign to a user with the specified role
+          if (rule.assignToRole) {
+            const targetUser = await prisma.user.findFirst({
+              where: { role: rule.assignToRole as UserRole, isActive: true },
+              select: { id: true },
+            });
+            if (targetUser) {
+              await prisma.caseAssignment.upsert({
+                where: { caseId_userId: { caseId, userId: targetUser.id } },
+                update: { removedAt: null, assignedAt: new Date() },
+                create: {
+                  caseId,
+                  userId: targetUser.id,
+                  role: "investigator",
+                },
+              });
+            }
+          }
+
+          // Notify users with the specified role
+          if (rule.notifyRole) {
+            const usersToNotify = await prisma.user.findMany({
+              where: { role: rule.notifyRole as UserRole, isActive: true },
+              select: { id: true },
+            });
+            if (usersToNotify.length > 0) {
+              await prisma.notification.createMany({
+                data: usersToNotify.map((u) => ({
+                  userId: u.id,
+                  type: "CASE_UPDATED" as const,
+                  title: "Case status changed (auto-routing)",
+                  message: `Case ${existingCase.caseNumber} status changed from ${existingCase.status} to ${data.status}`,
+                  link: `/dashboard/cases/${caseId}`,
+                })),
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[CM35] Error applying routing rules:", err);
+    }
+  }
+
   // ─── AF4: Field-level audit log ───────────────────────────
   const changes: Record<string, { old: unknown; new: unknown }> = {};
 

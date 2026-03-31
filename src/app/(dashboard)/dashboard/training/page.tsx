@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   BookOpen,
+  Repeat,
 } from "lucide-react";
 import { format, isPast, addDays, isBefore } from "date-fns";
 
@@ -277,6 +278,7 @@ export default function TrainingPage() {
   const [courseSearch, setCourseSearch] = useState("");
   const [debouncedCourseSearch, setDebouncedCourseSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
+  const [requiredFilter, setRequiredFilter] = useState<string | undefined>();
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCourseSearchChange = useCallback(
@@ -296,6 +298,7 @@ export default function TrainingPage() {
     pageSize: 50,
     ...(debouncedCourseSearch && { search: debouncedCourseSearch }),
     ...(categoryFilter && { category: categoryFilter }),
+    ...(requiredFilter && { isRequired: requiredFilter }),
     isActive: "true",
   };
   const { data: coursesData, isLoading: coursesLoading } = useCourses(courseFilters);
@@ -706,6 +709,23 @@ export default function TrainingPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* TM14: Required filter */}
+            <Select
+              value={requiredFilter ?? "ALL"}
+              onValueChange={(val) =>
+                setRequiredFilter(val === "ALL" ? undefined : (val ?? undefined))
+              }
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All courses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All courses</SelectItem>
+                <SelectItem value="true">Required only</SelectItem>
+                <SelectItem value="false">Optional only</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {coursesLoading ? (
@@ -755,6 +775,21 @@ export default function TrainingPage() {
                         <Badge variant="outline">
                           <Clock className="mr-1 size-3" />
                           {course.duration}h
+                        </Badge>
+                      )}
+                      {/* TM14: Repeating course badge */}
+                      {(course as any).isRepeating && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Repeat className="size-3" />
+                          {(course as any).repeatInterval === "ANNUAL"
+                            ? "Annual"
+                            : (course as any).repeatInterval === "BIENNIAL"
+                              ? "Biennial"
+                              : (course as any).repeatInterval === "QUARTERLY"
+                                ? "Quarterly"
+                                : (course as any).repeatInterval
+                                  ? enumLabel((course as any).repeatInterval)
+                                  : "Repeating"}
                         </Badge>
                       )}
                     </div>

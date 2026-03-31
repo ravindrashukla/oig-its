@@ -11,6 +11,8 @@ import {
   Building2,
   Mail,
   Phone,
+  Link2,
+  GitBranch,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { PaginatedResponse, Subject } from "@/types";
+import type { PaginatedResponse } from "@/types";
+
+// Extended Subject type to include parent/children from API response
+interface SubjectWithRelations {
+  id: string;
+  type: string;
+  firstName: string | null;
+  lastName: string | null;
+  orgName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  parent: { id: string; type: string; firstName: string | null; lastName: string | null; orgName: string | null } | null;
+  children: { id: string; type: string; firstName: string | null; lastName: string | null; orgName: string | null }[];
+}
+
+type Subject = SubjectWithRelations;
 import { cn } from "@/lib/utils";
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -209,6 +231,25 @@ export default function SubjectsPage() {
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Phone className="size-3" />
                             <span>{subject.phone}</span>
+                          </div>
+                        )}
+                        {/* CM49: Parent/child hierarchy display */}
+                        {subject.parent && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Link2 className="size-3" />
+                            <span className="truncate">
+                              Parent: {subject.parent.type === "INDIVIDUAL"
+                                ? [subject.parent.firstName, subject.parent.lastName].filter(Boolean).join(" ")
+                                : subject.parent.orgName || "Unknown"}
+                            </span>
+                          </div>
+                        )}
+                        {subject.children && subject.children.length > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <GitBranch className="size-3 text-muted-foreground" />
+                            <Badge variant="secondary" className="text-[10px]">
+                              Subsidiaries: {subject.children.length}
+                            </Badge>
                           </div>
                         )}
                         <p className="text-[10px] text-muted-foreground">

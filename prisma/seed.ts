@@ -1326,6 +1326,25 @@ async function main() {
     { category: "CASE_CATEGORY", code: "MANAGEMENT_REQUEST", label: "Management Request", sortOrder: 5 },
     { category: "CASE_CATEGORY", code: "AUDIT_FINDING", label: "Audit Finding", sortOrder: 6 },
     { category: "CASE_CATEGORY", code: "FOIA", label: "FOIA Request", sortOrder: 7 },
+    // VIOLATION_TYPE (RRS35)
+    { category: "VIOLATION_TYPE", code: "FRAUD", label: "Fraud", sortOrder: 1 },
+    { category: "VIOLATION_TYPE", code: "ETHICS", label: "Ethics", sortOrder: 2 },
+    { category: "VIOLATION_TYPE", code: "CRIMINAL", label: "Criminal", sortOrder: 3 },
+    { category: "VIOLATION_TYPE", code: "REGULATORY", label: "Regulatory", sortOrder: 4 },
+    { category: "VIOLATION_TYPE", code: "CONDUCT", label: "Conduct", sortOrder: 5 },
+    // REFERRAL_AGENCY (RRS35)
+    { category: "REFERRAL_AGENCY", code: "FBI", label: "FBI", sortOrder: 1 },
+    { category: "REFERRAL_AGENCY", code: "DOJ", label: "DOJ", sortOrder: 2 },
+    { category: "REFERRAL_AGENCY", code: "SEC", label: "SEC", sortOrder: 3 },
+    { category: "REFERRAL_AGENCY", code: "IRS", label: "IRS", sortOrder: 4 },
+    { category: "REFERRAL_AGENCY", code: "STATE_AG", label: "State AG", sortOrder: 5 },
+    { category: "REFERRAL_AGENCY", code: "LOCAL_PD", label: "Local PD", sortOrder: 6 },
+    // TECHNIQUE_TYPE (RRS35)
+    { category: "TECHNIQUE_TYPE", code: "INTERVIEW", label: "Interview", sortOrder: 1 },
+    { category: "TECHNIQUE_TYPE", code: "SURVEILLANCE", label: "Surveillance", sortOrder: 2 },
+    { category: "TECHNIQUE_TYPE", code: "SUBPOENA", label: "Subpoena", sortOrder: 3 },
+    { category: "TECHNIQUE_TYPE", code: "SEARCH_WARRANT", label: "Search Warrant", sortOrder: 4 },
+    { category: "TECHNIQUE_TYPE", code: "DIGITAL_FORENSICS", label: "Digital Forensics", sortOrder: 5 },
   ];
 
   for (const item of referenceDataItems) {

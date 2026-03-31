@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { checkPermission } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { updateInquirySchema } from "@/lib/validators/inquiry";
+import { sendInquiryStatusEmail } from "@/lib/inquiry-email";
 
 const inquiryInclude = {
   assignedTo: {
@@ -129,6 +130,19 @@ export async function PATCH(
     entityId: inquiryId,
     metadata: { changes: data },
   });
+
+  // EF14: Send email notice to submitter on status change
+  if (
+    (data.status === "UNDER_REVIEW" || data.status === "CLOSED") &&
+    existing.complainantEmail
+  ) {
+    void sendInquiryStatusEmail({
+      to: existing.complainantEmail,
+      inquiryNumber: existing.inquiryNumber,
+      status: data.status,
+      complainantName: existing.complainantName,
+    });
+  }
 
   return Response.json(updated);
 }

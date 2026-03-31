@@ -186,6 +186,8 @@ model User {
   assignedInquiries       PreliminaryInquiry[]     @relation("InquiryAssignee")
   checklistCompletions    CloseChecklist[]         @relation("ChecklistCompleter")
   approvedDocuments       Document[]               @relation("DocumentApprover")
+  delegationsFrom         Delegation[]             @relation("DelegationFrom")
+  delegationsTo           Delegation[]             @relation("DelegationTo")
 
   @@index([email])
   @@index([organizationId])
@@ -264,6 +266,7 @@ model Case {
   timeEntries        TimeEntry[]
   preliminaryInquiry PreliminaryInquiry? @relation("InquiryCase")
   closeChecklist     CloseChecklist[]
+  delegations        Delegation[]
 
   @@index([caseNumber])
   @@index([status])
@@ -409,6 +412,7 @@ model Document {
   approvedBy      User?               @relation("DocumentApprover", fields: [approvedById], references: [id])
   accessLogs      DocumentAccessLog[]
   comments        DocumentComment[]
+  attachments     DocumentAttachment[]
 
   @@index([caseId])
   @@index([status])
@@ -992,10 +996,12 @@ model TrainingCourse {
   method       String?  // CLASSROOM, ONLINE, IN_PERSON, BLENDED
   duration     Float?   // hours
   credits      Float?
-  isRequired   Boolean  @default(false)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isRequired      Boolean  @default(false)
+  isRepeating     Boolean  @default(false)
+  repeatInterval  String?  // ANNUAL, BIENNIAL, QUARTERLY, etc.
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   records      TrainingRecord[]
   assignments  TrainingAssignment[]
@@ -1094,4 +1100,43 @@ model CloseChecklist {
   completedBy User? @relation("ChecklistCompleter", fields: [completedById], references: [id])
 
   @@index([caseId])
+}
+
+// ─── Delegation (WPN27) ─────────────────────────────────
+
+model Delegation {
+  id            String   @id @default(cuid())
+  fromUserId    String
+  toUserId      String
+  type          String   // APPROVAL, TASK, CASE_ACCESS
+  caseId        String?  // optional - scope to specific case
+  startDate     DateTime @default(now())
+  endDate       DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  fromUser User @relation("DelegationFrom", fields: [fromUserId], references: [id])
+  toUser   User @relation("DelegationTo", fields: [toUserId], references: [id])
+  case     Case? @relation(fields: [caseId], references: [id])
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([isActive])
+}
+
+// ─── Document Attachments (CM20) ─────────────────────────
+
+model DocumentAttachment {
+  id         String   @id @default(cuid())
+  documentId String
+  fileName   String
+  fileKey    String
+  mimeType   String
+  fileSize   Int
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }
