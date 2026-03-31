@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OIG-ITS Demo Walkthrough</title>
+<style>
+  :root {
+    --navy: #0f172a;
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --amber: #d97706;
+    --amber-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --gray: #64748b;
+    --gray-light: #f1f5f9;
+    --border: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); color: white; padding: 3rem 2rem; text-align: center; }
+  .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .header p { font-size: 1.1rem; opacity: 0.8; max-width: 700px; margin: 0 auto; }
+  .header .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; margin-top: 1rem; }
+
+  /* Navigation */
+  .nav { background: white; border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+  .nav a { text-decoration: none; color: var(--gray); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+  .nav a:hover, .nav a.active { background: var(--blue-light); color: var(--blue); }
+
+  /* Content */
+  .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+  .section { margin-bottom: 3rem; scroll-margin-top: 4rem; }
+  .section h2 { font-size: 1.6rem; color: var(--navy); margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--blue); display: flex; align-items: center; gap: 0.5rem; }
+  .section h2 .num { background: var(--blue); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+  .section > p { color: var(--gray); margin-bottom: 1.5rem; }
+
+  /* Steps */
+  .step { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; position: relative; }
+  .step::before { content: attr(data-step); position: absolute; left: -12px; top: 16px; background: var(--blue); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+  .step h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .step p { font-size: 0.9rem; color: #475569; }
+  .step .url { background: #1e293b; color: #94a3b8; padding: 0.5rem 0.75rem; border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 0.8rem; margin: 0.5rem 0; display: block; word-break: break-all; }
+  .step .url span { color: #38bdf8; }
+  .step .expected { background: var(--green-light); border-left: 3px solid var(--green); padding: 0.5rem 0.75rem; border-radius: 0 6px 6px 0; font-size: 0.85rem; margin-top: 0.5rem; }
+  .step .warning { background: var(--amber-light); border-left: 3px solid var(--amber); padding: 0.5rem 0.75rem; border-radius: 0 6px 6px 0; font-size: 0.85rem; margin-top: 0.5rem; }
+  .step .creds { background: var(--gray-light); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; margin: 0.5rem 0; }
+  .step .creds code { background: #e2e8f0; padding: 0.1rem 0.4rem; border-radius: 3px; font-family: monospace; }
+
+  /* Cards */
+  .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .feature-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+  .feature-card h4 { font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .feature-card p { font-size: 0.8rem; color: var(--gray); }
+  .feature-card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+  .tag-blue { background: var(--blue-light); color: var(--blue); }
+  .tag-green { background: var(--green-light); color: var(--green); }
+  .tag-amber { background: var(--amber-light); color: var(--amber); }
+  .tag-red { background: var(--red-light); color: var(--red); }
+
+  /* Role table */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--gray-light); font-weight: 600; }
+  tr:hover { background: #f8fafc; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 2rem; color: var(--gray); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 3rem; }
+
+  /* Print */
+  @media print { .nav { display: none; } .header { padding: 1.5rem; } .step::before { position: static; display: inline-flex; margin-right: 0.5rem; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>OIG-ITS Demo Walkthrough</h1>
+  <p>Office of Personnel Management &mdash; Office of Inspector General<br>Investigative Tracking System</p>
+  <div class="badge">v1.0 &bull; March 2026 &bull; 95+ API Routes &bull; 20+ Modules</div>
+</div>
+
+<nav class="nav">
+  <a href="#prerequisites">Setup</a>
+  <a href="#login">Login</a>
+  <a href="#dashboard">Dashboard</a>
+  <a href="#cases">Cases</a>
+  <a href="#subjects">Subjects</a>
+  <a href="#evidence">Evidence</a>
+  <a href="#documents">Documents</a>
+  <a href="#tasks">Tasks</a>
+  <a href="#workflows">Workflows</a>
+  <a href="#hotline">Hotline</a>
+  <a href="#search">Search</a>
+  <a href="#reports">Reports</a>
+  <a href="#training">Training</a>
+  <a href="#timesheets">Timesheets</a>
+  <a href="#inventory">Inventory</a>
+  <a href="#admin">Admin</a>
+  <a href="#roles">Roles</a>
+</nav>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="prerequisites">
+  <h2><span class="num">0</span> Prerequisites &amp; Setup</h2>
+  <p>Before starting, ensure the system is running.</p>
+
+  <div class="step" data-step="1">
+    <h3>Start Docker Services</h3>
+    <p>Open PowerShell in the project directory and start all backend services:</p>
+    <code class="url">docker compose up -d</code>
+    <div class="expected">5 services should be running: postgres, redis, minio, meilisearch, mailhog</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Start the Application</h3>
+    <code class="url">npm run dev</code>
+    <div class="expected">Server starts at <span>http://localhost:3000</span></div>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Seed the Database (first time only)</h3>
+    <code class="url">npx prisma migrate dev && npx prisma db seed</code>
+    <div class="expected">200 cases, 150 subjects, 800 documents, 10,000 audit logs seeded</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="login">
+  <h2><span class="num">1</span> Login &amp; Authentication</h2>
+  <p>The system supports 6 roles with different access levels.</p>
+
+  <div class="step" data-step="1">
+    <h3>Navigate to Login Page</h3>
+    <code class="url"><span>http://localhost:3000/login</span></code>
+    <div class="expected">Split-screen login with OPM OIG branding, FedRAMP badge, and system statistics</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Login as Investigator (Primary Demo User)</h3>
+    <div class="creds">
+      Email: <code>samuel.johnson@oig.gov</code><br>
+      Password: <code>Demo2026!</code>
+    </div>
+    <div class="expected">Redirects to /dashboard with personalized greeting and 12 active cases</div>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Security Features</h3>
+    <p>Try these security behaviors:</p>
+    <ul style="font-size:0.85rem; color:#475569; margin-top:0.5rem; padding-left:1.5rem;">
+      <li><strong>Wrong password 5 times</strong> &rarr; Account locks for 15 minutes</li>
+      <li><strong>Session expires</strong> after 8 hours of inactivity</li>
+      <li><strong>Password reset</strong> available via email token flow</li>
+    </ul>
+  </div>
+
+  <table>
+    <tr><th>Role</th><th>Email</th><th>Access Level</th></tr>
+    <tr><td><span class="tag tag-blue">Investigator</span></td><td>samuel.johnson@oig.gov</td><td>Case work, evidence, tasks</td></tr>
+    <tr><td><span class="tag tag-green">Supervisor</span></td><td>catherine.monroe@oig.gov</td><td>+ Approve, assign, lock cases</td></tr>
+    <tr><td><span class="tag tag-red">Admin</span></td><td>jennifer.park@oig.gov</td><td>Full system access</td></tr>
+    <tr><td><span class="tag tag-amber">Analyst</span></td><td>patricia.hawkins@oig.gov</td><td>Read cases, run reports</td></tr>
+    <tr><td>Auditor</td><td>richard.thornton@oig.gov</td><td>Read cases + audit logs</td></tr>
+  </table>
+  <p style="font-size:0.8rem;color:var(--gray);">All accounts use password: <code style="background:#e2e8f0;padding:0.1rem 0.3rem;border-radius:3px;">Demo2026!</code></p>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="dashboard">
+  <h2><span class="num">2</span> Dashboard</h2>
+  <p>Personalized overview of your investigation workload.</p>
+
+  <div class="step" data-step="1">
+    <h3>View Dashboard Metrics</h3>
+    <code class="url"><span>http://localhost:3000/dashboard</span></code>
+    <div class="expected">4 primary metric cards (Total, Active, Critical, Closed cases), 3 secondary cards (Overdue Tasks, Deadlines, Notifications)</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Dashboard Widgets</h3>
+    <p>The dashboard shows:</p>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="icon">📊</div><h4>Cases by Status</h4><p>Color-coded breakdown badges</p></div>
+      <div class="feature-card"><div class="icon">📋</div><h4>Recent Cases</h4><p>5 most recently updated with links</p></div>
+      <div class="feature-card"><div class="icon">📅</div><h4>Upcoming Deadlines</h4><p>Case and task deadlines this week</p></div>
+      <div class="feature-card"><div class="icon">🔔</div><h4>Notifications</h4><p>Latest alerts with read/unread status</p></div>
+    </div>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Customize Dashboard Layout</h3>
+    <p>Click the <strong>gear icon</strong> next to "Dashboard" to customize:</p>
+    <ul style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li>Show/hide individual widgets with checkboxes</li>
+      <li>Reorder widgets with up/down arrows</li>
+      <li>Reset to default layout</li>
+    </ul>
+    <div class="expected">Layout saves to browser and persists across sessions</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="cases">
+  <h2><span class="num">3</span> Case Management</h2>
+  <p>Complete lifecycle from intake to closure with 9 case types and 7 statuses.</p>
+
+  <div class="step" data-step="1">
+    <h3>Browse Cases</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/cases</span></code>
+    <p>DataTable with columns: Case #, Title, Status, Priority, Type, Assigned To, Due Date. Use filters for Status, Type, Priority. Search by case number or title.</p>
+    <div class="expected">SA Johnson sees 12 assigned active cases (RBAC filtering)</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Create a New Case</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/cases/new</span></code>
+    <p>3-step wizard:</p>
+    <ol style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li><strong>Details:</strong> Title (min 5 chars) + Description</li>
+      <li><strong>Classification:</strong> Case Type (9 options) + Priority + Due Date</li>
+      <li><strong>Review:</strong> Confirm and submit</li>
+    </ol>
+    <div class="expected">Auto-generates case number OIG-2026-XXXXX, auto-assigns you as lead investigator</div>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>View Case Detail</h3>
+    <p>Click any case to see the <strong>10-tab detail view</strong>:</p>
+    <div class="feature-grid">
+      <div class="feature-card"><h4>Overview</h4><p>Description, counts, details sidebar, team</p></div>
+      <div class="feature-card"><h4>Documents</h4><p>Upload, download, approve, version</p></div>
+      <div class="feature-card"><h4>Evidence</h4><p>Chain of custody, exhibit numbers</p></div>
+      <div class="feature-card"><h4>Tasks</h4><p>Board &amp; list view, assignment</p></div>
+      <div class="feature-card"><h4>Subjects</h4><p>People &amp; orgs with roles</p></div>
+      <div class="feature-card"><h4>Timeline</h4><p>Auto-generated event chronology</p></div>
+      <div class="feature-card"><h4>Violations</h4><p>Charges per subject</p></div>
+      <div class="feature-card"><h4>Financial</h4><p>Recoveries, fines, savings</p></div>
+      <div class="feature-card"><h4>Techniques</h4><p>Interviews, warrants, surveillance</p></div>
+      <div class="feature-card"><h4>Referrals</h4><p>DOJ, FBI, state agencies</p></div>
+    </div>
+  </div>
+
+  <div class="step" data-step="4">
+    <h3>Case Status Progression</h3>
+    <p>Progress a case through its lifecycle:</p>
+    <p style="font-size:0.85rem; font-family:monospace; background:var(--gray-light); padding:0.5rem; border-radius:6px; margin:0.5rem 0;">
+      INTAKE &rarr; OPEN &rarr; ACTIVE &rarr; UNDER_REVIEW &rarr; PENDING_ACTION &rarr; CLOSED &rarr; ARCHIVED
+    </p>
+    <div class="warning">Pre-close validation requires: at least 1 subject, 1 document, all tasks completed, and checklist items done</div>
+  </div>
+
+  <div class="step" data-step="5">
+    <h3>Case Locking</h3>
+    <p>Login as <strong>Admin</strong> or <strong>Supervisor</strong> to lock a case. Locked cases return HTTP 423 on any edit attempt. Cases auto-lock when closed.</p>
+  </div>
+
+  <div class="step" data-step="6">
+    <h3>Case Relationships</h3>
+    <p>Link related cases (spinoffs, merged investigations) from the case detail API. Related case numbers and titles are preserved.</p>
+  </div>
+
+  <div class="step" data-step="7">
+    <h3>Draft Cases</h3>
+    <p>Save incomplete cases as drafts with relaxed validation. Auto-titled "Draft - OIG-2026-XXXXX".</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="subjects">
+  <h2><span class="num">4</span> Subject Management</h2>
+  <p>Track individuals and organizations involved in investigations.</p>
+
+  <div class="step" data-step="1">
+    <h3>Global Subjects Directory</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/subjects</span></code>
+    <div class="expected">Card grid of 150 subjects with type badges, contact info, parent/child hierarchies</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Subject Types &amp; Roles</h3>
+    <table>
+      <tr><th>Subject Types</th><th>Subject Roles (per case)</th></tr>
+      <tr><td>Individual, Organization, Department, Vendor, Other</td><td>Complainant, Respondent, Witness, Subject of Interest, Informant, Other</td></tr>
+    </table>
+    <p style="font-size:0.85rem;">Roles can be changed (e.g., Witness &rarr; Subject of Interest). Duplicate detection warns on creation.</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Subject Actions</h3>
+    <p>Track per-subject outcomes:</p>
+    <ul style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li><strong>Administrative:</strong> Suspension, Termination, Demotion</li>
+      <li><strong>Legal:</strong> Indictment, Conviction, Acquittal</li>
+      <li><strong>Sentencing:</strong> Restitution, Fines, Probation, Imprisonment</li>
+    </ul>
+  </div>
+
+  <div class="step" data-step="4">
+    <h3>Entity Hierarchies</h3>
+    <p>Link parent/child organizations (e.g., Acme Corp &rarr; Acme Sub LLC). Displayed as "Parent:" and "Subsidiaries: N" on subject cards.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="evidence">
+  <h2><span class="num">5</span> Evidence &amp; Chain of Custody</h2>
+
+  <div class="step" data-step="1">
+    <h3>Evidence Types</h3>
+    <p>8 types: Document, Photo, Video, Audio, Digital, Physical, Testimony, Other. Each gets auto-labeled with exhibit numbers (EX-001, EX-002).</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Chain of Custody</h3>
+    <p>Every evidence transfer is tracked with:</p>
+    <ul style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li>From User &rarr; To User</li>
+      <li>Action (Collected, Transferred, Reviewed, Stored, Released)</li>
+      <li>Timestamp and notes</li>
+    </ul>
+    <div class="expected">Immutable chain &mdash; entries cannot be modified or deleted</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="documents">
+  <h2><span class="num">6</span> Document Management</h2>
+
+  <div class="step" data-step="1">
+    <h3>Upload Documents</h3>
+    <p>Navigate to any case &rarr; Documents tab. Upload files up to 50 MB in 30 supported formats (PDF, Word, Excel, PowerPoint, images, audio, video, email).</p>
+    <div class="expected">Files stored in MinIO (S3-compatible). Access logged for every download.</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Document Versioning</h3>
+    <p>Upload a new version of an existing document. Version numbers auto-increment (v1, v2, v3...). Previous versions are preserved.</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Supervisory Approval</h3>
+    <p>Flag documents as requiring approval. Supervisors/Admins get notified and can approve or reject. Document status: DRAFT &rarr; UPLOADED &rarr; REVIEWED &rarr; APPROVED.</p>
+  </div>
+
+  <div class="step" data-step="4">
+    <h3>Document Templates</h3>
+    <p>19 predefined templates auto-populate with case data:</p>
+    <p style="font-size:0.85rem; color:#475569;">Subpoena, Memorandum of Interview, Report of Investigation, Evidence Receipt, Witness Statement, Case Closure Memo, Affidavit, Search Warrant, Arrest Warrant, Grand Jury Subpoena, Deposition Notice, Case Transfer Memo, Investigative Summary, Referral Letter, Suspension Notice, Complaint Form, Evidence Log Sheet, Interview Schedule, Travel Authorization</p>
+  </div>
+
+  <div class="step" data-step="5">
+    <h3>ZIP Download</h3>
+    <p>Download all case documents as a single ZIP archive from the API.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="tasks">
+  <h2><span class="num">7</span> Task Management</h2>
+
+  <div class="step" data-step="1">
+    <h3>Task Views</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/tasks</span></code>
+    <p>Toggle between <strong>Kanban Board</strong> (4 columns: Pending, In Progress, Blocked, Completed) and <strong>Table View</strong> (sortable, filterable).</p>
+    <div class="expected">Overdue tasks show red "Overdue Xd" badges</div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Task Delegation</h3>
+    <p>Click "Reassign" on any task to delegate to another team member. The new assignee receives a notification automatically.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="workflows">
+  <h2><span class="num">8</span> Workflows &amp; Approvals</h2>
+
+  <div class="step" data-step="1">
+    <h3>Pending Approvals</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/approvals</span></code>
+    <p>View workflow steps awaiting your action. Actions: Approve, Reject, Skip (admin), Revert (admin).</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Workflow Types</h3>
+    <table>
+      <tr><th>Workflow</th><th>Steps</th></tr>
+      <tr><td>Case Intake Review</td><td>Screening &rarr; Supervisor Approval &rarr; Assignment</td></tr>
+      <tr><td>Investigation Closure</td><td>Summary &rarr; Supervisory Review &rarr; Legal Check &rarr; Final Approval</td></tr>
+      <tr><td>Evidence Review</td><td>Cataloging &rarr; Technical Analysis &rarr; Verification</td></tr>
+      <tr><td>Document Approval</td><td>Author Review &rarr; Supervisor Approval</td></tr>
+      <tr><td>Whistleblower Protection</td><td>Identity Verification &rarr; Risk Assessment &rarr; Protection Plan</td></tr>
+    </table>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Notifications</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/notifications</span></code>
+    <p>9 notification types: Case Assigned, Case Updated, Task Assigned, Task Due, Document Uploaded, Evidence Added, Workflow Action, System Alert, Announcement. Delivered via email + in-app. Click the bell icon for quick view.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="hotline">
+  <h2><span class="num">9</span> Hotline &amp; Whistleblower Portal</h2>
+  <p>Public-facing intake forms &mdash; no authentication required.</p>
+
+  <div class="step" data-step="1">
+    <h3>Public Hotline Complaint</h3>
+    <code class="url"><span>http://localhost:3000/hotline</span></code>
+    <p>Anyone can submit a complaint. Fields: Subject, Description, Contact Info (optional), Anonymous option, Category. Returns inquiry number (INQ-2026-XXXXX).</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Whistleblower Submission</h3>
+    <code class="url"><span>http://localhost:3000/whistleblower</span></code>
+    <p>Same form with additional legal protections notice citing the Whistleblower Protection Act (5 U.S.C. &sect; 2302(b)(8)). Auto-set to HIGH priority.</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Inquiry Management</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/inquiries</span></code>
+    <p>Staff view all inquiries. Actions: Assign, Review, <strong>Convert to Case</strong> (creates a full investigation from the inquiry).</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="search">
+  <h2><span class="num">10</span> Search &amp; Saved Searches</h2>
+
+  <div class="step" data-step="1">
+    <h3>Quick Search (Cmd+K)</h3>
+    <p>Press <strong>Cmd+K</strong> (or Ctrl+K) anywhere in the app. Type to instantly search across cases, evidence, tasks, and documents. Click a result to navigate.</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Full Search Page</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/search</span></code>
+    <p>Tabbed results (All, Cases, Evidence, Tasks, Documents). Faceted filtering sidebar. Date range filters. Save searches for reuse.</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Advanced Search</h3>
+    <p>Expand the "Advanced Search" panel for per-field criteria: entity type, status, type, priority, title/description keywords, date ranges.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="reports">
+  <h2><span class="num">11</span> Reports &amp; Analytics</h2>
+
+  <div class="step" data-step="1">
+    <h3>Analytics Dashboard</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/analytics</span></code>
+    <p>Interactive Recharts visualizations: Cases by Status (bar), Cases by Type (pie), Cases by Month (trend), Task Completion (pie). Plus: closure rate, avg days to close, investigator workload table, financial summary.</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Financial Dashboard</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/financial</span></code>
+    <p>Total Recoveries, Fines, Restitution, Savings. ROI calculation. Top cases and subjects by financial impact. Monthly trend.</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Standard Reports</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/reports</span></code>
+    <p>7 standard report templates (seed them first as Admin via "Seed Default Reports" button):</p>
+    <ol style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li>Case Summary Report</li>
+      <li>Investigation Activity Report</li>
+      <li>Task Completion Report</li>
+      <li>Evidence Chain of Custody Report</li>
+      <li>Financial Summary Report</li>
+      <li>Semiannual Report to Congress</li>
+      <li>Audit Trail Report</li>
+    </ol>
+    <p style="font-size:0.85rem;">Export as JSON, CSV, Excel (.xlsx), or printable PDF.</p>
+  </div>
+
+  <div class="step" data-step="4">
+    <h3>Ad Hoc Report Builder</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/reports/builder</span></code>
+    <p>No-code report builder: select entity type, pick columns, add filters, preview results, download as CSV, or save as a named report for reuse.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="training">
+  <h2><span class="num">12</span> Training Management</h2>
+
+  <div class="step" data-step="1">
+    <h3>Training Dashboard</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/training</span></code>
+    <p>3 tabs:</p>
+    <ul style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li><strong>My Training:</strong> Your records, completion status, expiration warnings, scores</li>
+      <li><strong>Course Catalog:</strong> Browse courses, enroll, filter by category/required</li>
+      <li><strong>Assignments:</strong> (Admin) Assign courses to users, roles, or groups</li>
+    </ul>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Training Features</h3>
+    <p>Course evaluations with ratings, cost tracking per course/user, repeating courses (annual ethics training), expiration notifications, certificate uploads, CSV export.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="timesheets">
+  <h2><span class="num">13</span> Time &amp; Labor Tracking</h2>
+
+  <div class="step" data-step="1">
+    <h3>Timesheets Page</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/timesheets</span></code>
+    <p>Two tabs:</p>
+    <ul style="font-size:0.85rem; color:#475569; padding-left:1.5rem;">
+      <li><strong>Time Entries:</strong> Log hours by activity (Case Work, Training, Admin, Travel, Overtime, Undercover, Court, Leave). Link to specific cases.</li>
+      <li><strong>Timesheets:</strong> Generate period summaries. Regular, OT, LEAP hours. Availability pay calculation per Title 5 USC &sect;5545a. Submit &rarr; Approve workflow.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="inventory">
+  <h2><span class="num">14</span> Inventory &amp; Calendar</h2>
+
+  <div class="step" data-step="1">
+    <h3>Inventory Management</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/inventory</span></code>
+    <p>Track evidence items, equipment, and property. Summary cards by type and status. "By Agent" tab groups items by assignee.</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Calendar</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/calendar</span></code>
+    <p>Monthly grid view with reminder dots. List view alternative. Create recurring reminders (daily, weekly, monthly, quarterly, semiannual, annual).</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="admin">
+  <h2><span class="num">15</span> Administration (Admin Only)</h2>
+  <p>Login as <code>jennifer.park@oig.gov</code> to access these features.</p>
+
+  <div class="step" data-step="1">
+    <h3>User Management</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/users</span></code>
+    <p>Create, disable, change roles. Search by name/email. Filter by role.</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Audit Log</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/audit-log</span></code>
+    <p>10,000+ audit entries. Filter by action, entity type, date range. Export as CSV. Field-level changes tracked (old &rarr; new values).</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>System Settings</h3>
+    <code class="url"><span>http://localhost:3000/dashboard/settings</span></code>
+    <p>Key-value system settings, reference data management (allegation types, closure reasons, case categories, technique types).</p>
+  </div>
+
+  <div class="step" data-step="4">
+    <h3>Admin-Only APIs</h3>
+    <table>
+      <tr><th>Endpoint</th><th>Purpose</th></tr>
+      <tr><td>/api/admin/retention</td><td>Records retention policy &amp; cleanup</td></tr>
+      <tr><td>/api/admin/exceptions</td><td>ACCESS_DENIED events &amp; system errors</td></tr>
+      <tr><td>/api/admin/routing-rules</td><td>Auto-routing on status changes</td></tr>
+      <tr><td>/api/admin/filing-rules</td><td>Automated acceptance/rejection rules</td></tr>
+      <tr><td>/api/admin/field-labels</td><td>Customize field display names</td></tr>
+      <tr><td>/api/admin/data-dictionary</td><td>Auto-generated schema dictionary</td></tr>
+      <tr><td>/api/import/cases</td><td>Bulk case import (JSON)</td></tr>
+      <tr><td>/api/import/documents</td><td>Document import (CSV + files)</td></tr>
+      <tr><td>/api/reports/seed-defaults</td><td>Create 7 standard report templates</td></tr>
+      <tr><td>/api/reports/run-scheduled</td><td>Execute scheduled reports (cron)</td></tr>
+      <tr><td>/api/training/check-expirations</td><td>Send training expiry notifications</td></tr>
+      <tr><td>/api/calendar/check-reminders</td><td>Process calendar reminder notifications</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="roles">
+  <h2><span class="num">16</span> Role-Based Access Control</h2>
+
+  <div class="step" data-step="1">
+    <h3>Permission Matrix</h3>
+    <table>
+      <tr><th>Permission</th><th>Admin</th><th>Supervisor</th><th>Investigator</th><th>Analyst</th><th>Auditor</th><th>Readonly</th></tr>
+      <tr><td>Create cases</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+      <tr><td>Read cases</td><td>All</td><td>All</td><td>Assigned</td><td>All</td><td>All</td><td>Assigned</td></tr>
+      <tr><td>Update cases</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;*</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+      <tr><td>Lock/unlock cases</td><td>&#10003;</td><td>&#10003;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+      <tr><td>Manage users</td><td>&#10003;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+      <tr><td>View audit logs</td><td>&#10003;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&#10003;</td><td>&mdash;</td></tr>
+      <tr><td>Run reports</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&mdash;</td></tr>
+      <tr><td>Approve workflows</td><td>&#10003;</td><td>&#10003;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+    </table>
+    <p style="font-size:0.8rem;color:var(--gray);">* Investigator edits restricted by field-level permissions based on case status</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Try Different Roles</h3>
+    <p>Log out and log in with different accounts to see how the interface changes. Investigators see only assigned cases. Analysts see all cases but can't edit. Admins see everything.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<div class="section" id="api">
+  <h2><span class="num">17</span> API Reference</h2>
+  <p>All APIs are RESTful JSON endpoints at <code>http://localhost:3000/api/</code>.</p>
+
+  <table>
+    <tr><th>Category</th><th>Endpoints</th><th>Methods</th></tr>
+    <tr><td>Cases</td><td>/api/cases, /api/cases/[id], /api/cases/export</td><td>GET, POST, PATCH</td></tr>
+    <tr><td>Case Sub-resources</td><td>documents, evidence, tasks, subjects, violations, financial-results, techniques, referrals, notes, relationships, checklist, subpoenas, timeline, report, field-permissions</td><td>GET, POST, PATCH, DELETE</td></tr>
+    <tr><td>Subjects</td><td>/api/subjects, /api/subjects/export</td><td>GET, POST, PATCH, DELETE</td></tr>
+    <tr><td>Inquiries</td><td>/api/inquiries, /api/inquiries/[id], /api/inquiries/[id]/convert</td><td>GET, POST, PATCH</td></tr>
+    <tr><td>Public</td><td>/api/public/hotline, /api/public/whistleblower</td><td>POST (no auth)</td></tr>
+    <tr><td>Workflows</td><td>/api/workflows, /api/workflows/[id]/action</td><td>GET, POST</td></tr>
+    <tr><td>Reports</td><td>/api/reports, /api/reports/[id]/run, /api/reports/[id]/review</td><td>GET, POST, PATCH</td></tr>
+    <tr><td>Analytics</td><td>/api/analytics, /api/analytics/financial</td><td>GET</td></tr>
+    <tr><td>Training</td><td>/api/training/courses, records, assignments, evaluations, analytics, export</td><td>GET, POST, PATCH</td></tr>
+    <tr><td>Time</td><td>/api/time-entries, /api/timesheets</td><td>GET, POST, PATCH</td></tr>
+    <tr><td>Other</td><td>notifications, audit-logs, users, settings, reference-data, inventory, calendar, delegations, saved-searches, document-templates, user-preferences</td><td>Various</td></tr>
+  </table>
+</div>
+
+</div>
+
+<div class="footer">
+  <p><strong>OIG-ITS</strong> &mdash; OPM Office of Inspector General Investigative Tracking System</p>
+  <p>Built with Next.js 16, React, Prisma 7, PostgreSQL, MeiliSearch, MinIO</p>
+  <p>100/100 automated tests passing &bull; 95+ API routes &bull; 76 pages &bull; ~91% SOW coverage</p>
+</div>
+
+<script>
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+</body>
+</html>
