@@ -224,9 +224,12 @@ export default function Sidebar() {
         {/* Quick Links section (WPN10) */}
         {!sidebarCollapsed && (
           <div>
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setQuickLinksOpen(!quickLinksOpen)}
-              className="mb-1 flex w-full items-center gap-1 px-2 text-[10px] font-semibold tracking-widest text-muted-foreground hover:text-foreground"
+              onKeyDown={(e) => { if (e.key === "Enter") setQuickLinksOpen(!quickLinksOpen); }}
+              className="mb-1 flex w-full cursor-pointer items-center gap-1 px-2 text-[10px] font-semibold tracking-widest text-muted-foreground hover:text-foreground"
             >
               {quickLinksOpen ? (
                 <ChevronDown className="size-3" />
@@ -243,7 +246,7 @@ export default function Sidebar() {
               >
                 <Plus className="size-3" />
               </button>
-            </button>
+            </div>
             {quickLinksOpen && (
               <ul className="space-y-0.5">
                 {shortcuts.length === 0 && (
