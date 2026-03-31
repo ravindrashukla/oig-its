@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
+import Image from "next/image";
 import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,11 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-6 max-w-md text-center">
           <div className="flex items-center justify-center size-20 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
             <Shield className="size-10 text-blue-300" />
+          </div>
+
+          <div className="flex items-center gap-2 opacity-80">
+            <span className="text-[10px] text-blue-300/60 uppercase tracking-widest">Developed by</span>
+            <Image src="/ypoint-logo.png" alt="Y Point" width={80} height={40} className="invert opacity-70" />
           </div>
 
           <span className="inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-xs font-semibold tracking-wide text-emerald-300 uppercase">

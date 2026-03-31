@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Shield } from "lucide-react";
 
 export default function PublicLayout({
@@ -40,6 +41,10 @@ export default function PublicLayout({
             All complaints are reviewed by the OIG. If you believe you are in
             immediate danger, please contact local law enforcement or call 911.
           </p>
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Developed by</span>
+            <Image src="/ypoint-logo.png" alt="Y Point" width={60} height={30} className="opacity-30" />
+          </div>
         </div>
       </footer>
     </div>

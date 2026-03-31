@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Shield,
@@ -337,6 +338,14 @@ export default function Sidebar() {
           </div>
         </div>
       )}
+
+      {/* Y Point branding */}
+      <div className="mt-auto border-t border-border px-3 py-2 flex items-center justify-center gap-1.5">
+        {!sidebarCollapsed && (
+          <span className="text-[9px] text-muted-foreground uppercase tracking-widest">by</span>
+        )}
+        <Image src="/ypoint-logo.png" alt="Y Point" width={sidebarCollapsed ? 24 : 56} height={sidebarCollapsed ? 12 : 28} className="opacity-40 dark:invert" />
+      </div>
     </aside>
   );
 }
