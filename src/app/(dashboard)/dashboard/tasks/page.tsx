@@ -6,7 +6,7 @@ import { Search, X, SlidersHorizontal, LayoutGrid, List, ClipboardList, UserPlus
 import { format, differenceInDays, isPast } from "date-fns";
 
 import { useTasks, useUpdateTask } from "@/hooks/useTasks";
-import { TaskStatus, Priority } from "@/generated/prisma/enums";
+import { TaskStatus, Priority } from "@/lib/enums";
 import type { TaskFilters } from "@/types";
 import type { TaskWithRelations } from "@/types/task";
 import { DataTable, type ColumnDef, type SortState, type PaginationState } from "@/components/ui/DataTable";

@@ -6,7 +6,7 @@ import { Search, X, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
 
 import { useCases } from "@/hooks/useCases";
-import { CaseStatus, CaseType, Priority } from "@/generated/prisma/enums";
+import { CaseStatus, CaseType, Priority } from "@/lib/enums";
 import type { CaseFilters } from "@/types";
 import type { CaseWithAssignees } from "@/types/case";
 import { DataTable, type ColumnDef, type SortState, type PaginationState } from "@/components/ui/DataTable";

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 
-import { CaseType, Priority } from "@/generated/prisma/enums";
+import { CaseType, Priority } from "@/lib/enums";
 import { createCaseSchema, type CreateCaseInput } from "@/lib/validators/case";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
