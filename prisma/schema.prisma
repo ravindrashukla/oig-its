@@ -188,6 +188,10 @@ model User {
   approvedDocuments       Document[]               @relation("DocumentApprover")
   delegationsFrom         Delegation[]             @relation("DelegationFrom")
   delegationsTo           Delegation[]             @relation("DelegationTo")
+  reportSubmissions       ReportReview[]           @relation("ReportSubmitter")
+  reportReviews           ReportReview[]           @relation("ReportReviewer")
+  subpoenaApprovals       SubpoenaPackage[]        @relation("SubpoenaApprover")
+  courseEvaluations        CourseEvaluation[]
 
   @@index([email])
   @@index([organizationId])
@@ -267,6 +271,7 @@ model Case {
   preliminaryInquiry PreliminaryInquiry? @relation("InquiryCase")
   closeChecklist     CloseChecklist[]
   delegations        Delegation[]
+  subpoenaPackages   SubpoenaPackage[]
 
   @@index([caseNumber])
   @@index([status])
@@ -313,6 +318,7 @@ model Subject {
   violations       Violation[]
   financialResults FinancialResult[]
   subjectActions   SubjectAction[]
+  documents        Document[]
 
   @@index([type])
   @@index([email])
@@ -403,10 +409,12 @@ model Document {
   requiresApproval Boolean   @default(false)
   approvedById     String?
   approvedAt       DateTime?
+  subjectId        String?            // CM19: Associate legal docs with entities
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
   case            Case?               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  subject         Subject?            @relation(fields: [subjectId], references: [id])
   previousVersion Document?           @relation("DocumentVersions", fields: [previousVersionId], references: [id])
   nextVersions    Document[]          @relation("DocumentVersions")
   approvedBy      User?               @relation("DocumentApprover", fields: [approvedById], references: [id])
@@ -418,6 +426,7 @@ model Document {
   @@index([status])
   @@index([uploadedBy])
   @@index([previousVersionId])
+  @@index([subjectId])
 }
 
 model DocumentAccessLog {
@@ -458,10 +467,11 @@ model EvidenceItem {
   status      EvidenceStatus @default(COLLECTED)
   title       String
   description String?
-  source      String?
-  collectedAt DateTime       @default(now())
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  source        String?
+  exhibitNumber String?        // WPN23: Sequential exhibit label (EX-001, EX-002, etc.)
+  collectedAt   DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   case           Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
   chainOfCustody ChainOfCustody[]
@@ -656,6 +666,7 @@ model ReportRun {
 
   definition ReportDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
   runBy      User             @relation(fields: [runById], references: [id])
+  reviews    ReportReview[]
 
   @@index([definitionId])
   @@index([runById])
@@ -1003,8 +1014,10 @@ model TrainingCourse {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  records      TrainingRecord[]
-  assignments  TrainingAssignment[]
+  cost            Float?   // per-person cost (TM19)
+  records         TrainingRecord[]
+  assignments     TrainingAssignment[]
+  evaluations     CourseEvaluation[]
 
   @@index([category])
   @@index([isRequired])
@@ -1020,6 +1033,7 @@ model TrainingRecord {
   score           Float?
   hours           Float?
   certificateKey  String?  // MinIO file key for uploaded certificate
+  cost            Float?   // actual cost incurred (TM19)
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -1040,7 +1054,11 @@ model TrainingAssignment {
   assignedTo   String   // Can be userId, role name, or group name
   assigneeType String   // USER, ROLE, GROUP
   dueDate      DateTime?
-  assignedById String
+  assignedById        String
+  bookingStatus       String   @default("PENDING") // PENDING, BOOKED, WAITLISTED, CANCELLED (TM3)
+  purchaseOrderNumber String?
+  approvedById        String?
+  approvedAt          DateTime?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -1139,4 +1157,82 @@ model DocumentAttachment {
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
+}
+
+// ─── Report Supervisor Review (RRS30) ────────────────────
+
+model ReportReview {
+  id            String    @id @default(cuid())
+  reportRunId   String
+  submittedById String
+  reviewerId    String?
+  status        String    @default("SUBMITTED") // SUBMITTED, IN_REVIEW, APPROVED, REJECTED, REVISION_REQUESTED
+  comments      String?
+  submittedAt   DateTime  @default(now())
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reportRun   ReportRun @relation(fields: [reportRunId], references: [id])
+  submittedBy User      @relation("ReportSubmitter", fields: [submittedById], references: [id])
+  reviewer    User?     @relation("ReportReviewer", fields: [reviewerId], references: [id])
+
+  @@index([reportRunId])
+  @@index([submittedById])
+  @@index([status])
+}
+
+// ─── Configurable Field Labels (C16) ─────────────────────
+
+model FieldLabel {
+  id          String  @id @default(cuid())
+  entityType  String  // Case, Subject, Evidence, Document, Task
+  fieldName   String
+  customLabel String
+  isActive    Boolean @default(true)
+
+  @@unique([entityType, fieldName])
+  @@index([entityType])
+}
+
+// ─── Subpoena Packages (CM11) ────────────────────────────
+
+model SubpoenaPackage {
+  id           String    @id @default(cuid())
+  caseId       String
+  title        String
+  status       String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, SERVED, RETURNED
+  issuedTo     String?
+  issuedDate   DateTime?
+  returnDate   DateTime?
+  approvedById String?
+  approvedAt   DateTime?
+  notes        String?
+  documentIds  String[]  // array of document IDs in the package
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  case       Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  approvedBy User? @relation("SubpoenaApprover", fields: [approvedById], references: [id])
+
+  @@index([caseId])
+  @@index([status])
+}
+
+// ─── Course Evaluations (TM16) ──────────────────────────
+
+model CourseEvaluation {
+  id          String   @id @default(cuid())
+  courseId     String
+  userId      String
+  rating      Int      // 1-5
+  comments    String?
+  isAnonymous Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  course TrainingCourse @relation(fields: [courseId], references: [id])
+  user   User           @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@index([courseId])
 }

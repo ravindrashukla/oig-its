@@ -101,6 +101,9 @@ export async function GET(
       include: {
         _count: { select: { comments: true, accessLogs: true } },
         attachments: { orderBy: { sortOrder: "asc" } },
+        subject: {
+          select: { id: true, type: true, firstName: true, lastName: true, orgName: true },
+        },
       },
     }),
     prisma.document.count({ where }),
@@ -164,6 +167,7 @@ export async function POST(
   const title = (formData.get("title") as string) || "";
   const previousVersionId = (formData.get("previousVersionId") as string) || null;
   const requiresApproval = formData.get("requiresApproval") === "true";
+  const subjectId = (formData.get("subjectId") as string) || null;
 
   if (!file) {
     return Response.json({ error: "No file provided" }, { status: 400 });
@@ -217,6 +221,7 @@ export async function POST(
       version,
       previousVersionId,
       requiresApproval,
+      subjectId,
     },
     include: {
       _count: { select: { comments: true, accessLogs: true } },

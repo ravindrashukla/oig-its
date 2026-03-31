@@ -126,7 +126,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { userId, courseId, status, completionDate, expirationDate, score, hours, notes } = body;
+  const { userId, courseId, status, completionDate, expirationDate, score, hours, notes, cost } = body;
 
   const targetUserId = userId || sessionUserId;
 
@@ -157,6 +157,7 @@ export async function POST(request: Request) {
       expirationDate: expirationDate ? new Date(expirationDate) : null,
       score: score != null ? Number(score) : null,
       hours: hours != null ? Number(hours) : null,
+      cost: cost != null ? Number(cost) : null,
       notes: notes || null,
     },
     include: recordInclude,
@@ -210,7 +211,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { status, completionDate, expirationDate, score, hours, certificateKey, notes } = body;
+  const { status, completionDate, expirationDate, score, hours, certificateKey, notes, cost } = body;
 
   const record = await prisma.trainingRecord.update({
     where: { id },
@@ -226,6 +227,7 @@ export async function PATCH(request: Request) {
       ...(hours !== undefined && { hours: hours != null ? Number(hours) : null }),
       ...(certificateKey !== undefined && { certificateKey: certificateKey || null }),
       ...(notes !== undefined && { notes: notes || null }),
+      ...(cost !== undefined && { cost: cost != null ? Number(cost) : null }),
     },
     include: recordInclude,
   });

@@ -142,6 +142,23 @@ export async function POST(
 
   const { title, description, type, source, collectedAt } = parsed.data;
 
+  // WPN23: Auto-generate sequential exhibit number (EX-001, EX-002, etc.)
+  const existingEvidence = await prisma.evidenceItem.findMany({
+    where: { caseId, exhibitNumber: { not: null } },
+    select: { exhibitNumber: true },
+    orderBy: { exhibitNumber: "desc" },
+    take: 1,
+  });
+
+  let nextExhibitNum = 1;
+  if (existingEvidence.length > 0 && existingEvidence[0].exhibitNumber) {
+    const match = existingEvidence[0].exhibitNumber.match(/^EX-(\d+)$/);
+    if (match) {
+      nextExhibitNum = parseInt(match[1], 10) + 1;
+    }
+  }
+  const exhibitNumber = `EX-${String(nextExhibitNum).padStart(3, "0")}`;
+
   const evidenceItem = await prisma.evidenceItem.create({
     data: {
       caseId,
@@ -149,6 +166,7 @@ export async function POST(
       description: description || null,
       type,
       source: source || null,
+      exhibitNumber,
       collectedAt: collectedAt ? new Date(collectedAt) : new Date(),
     },
     include: {

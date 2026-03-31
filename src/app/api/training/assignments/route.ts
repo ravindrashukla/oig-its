@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { courseId, assignedTo, assigneeType, dueDate } = body;
+  const { courseId, assignedTo, assigneeType, dueDate, bookingStatus, purchaseOrderNumber } = body;
 
   if (!courseId || typeof courseId !== "string") {
     return Response.json({ error: "courseId is required" }, { status: 422 });
@@ -124,6 +124,8 @@ export async function POST(request: Request) {
       assigneeType,
       dueDate: dueDate ? new Date(dueDate) : null,
       assignedById: userId,
+      bookingStatus: bookingStatus || "PENDING",
+      purchaseOrderNumber: purchaseOrderNumber || null,
     },
     include: assignmentInclude,
   });
@@ -137,4 +139,73 @@ export async function POST(request: Request) {
   });
 
   return Response.json(assignment, { status: 201 });
+}
+
+// ─── PATCH: Update a training assignment (booking/procurement) ──
+
+export async function PATCH(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { userId, role } = session.user;
+
+  if (!checkPermission(role, "training:assign")) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+  if (!id) {
+    return Response.json({ error: "id query parameter is required" }, { status: 400 });
+  }
+
+  const existing = await prisma.trainingAssignment.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!existing) {
+    return Response.json({ error: "Assignment not found" }, { status: 404 });
+  }
+
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { bookingStatus, purchaseOrderNumber, approvedById, approvedAt, dueDate, isActive } = body;
+
+  const validStatuses = ["PENDING", "BOOKED", "WAITLISTED", "CANCELLED"];
+  if (bookingStatus !== undefined && !validStatuses.includes(bookingStatus)) {
+    return Response.json(
+      { error: `bookingStatus must be one of: ${validStatuses.join(", ")}` },
+      { status: 422 },
+    );
+  }
+
+  const assignment = await prisma.trainingAssignment.update({
+    where: { id },
+    data: {
+      ...(bookingStatus !== undefined && { bookingStatus }),
+      ...(purchaseOrderNumber !== undefined && { purchaseOrderNumber: purchaseOrderNumber || null }),
+      ...(approvedById !== undefined && { approvedById: approvedById || null }),
+      ...(approvedAt !== undefined && { approvedAt: approvedAt ? new Date(approvedAt) : null }),
+      ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+      ...(isActive !== undefined && { isActive }),
+    },
+    include: assignmentInclude,
+  });
+
+  void logAudit({
+    userId,
+    action: "UPDATE",
+    entityType: "TrainingAssignment",
+    entityId: assignment.id,
+    metadata: { bookingStatus, purchaseOrderNumber },
+  });
+
+  return Response.json(assignment);
 }

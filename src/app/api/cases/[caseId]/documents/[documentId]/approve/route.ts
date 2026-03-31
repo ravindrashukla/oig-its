@@ -58,6 +58,19 @@ export async function POST(
     },
   });
 
+  // EF8: Notify the document uploader about approval
+  if (document.uploadedBy !== userId) {
+    await prisma.notification.create({
+      data: {
+        userId: document.uploadedBy,
+        type: "DOCUMENT_UPLOADED",
+        title: "Document approved",
+        message: `Your document "${document.title}" has been approved`,
+        link: `/dashboard/cases/${caseId}/documents`,
+      },
+    });
+  }
+
   void logAudit({
     userId,
     action: "UPDATE",
@@ -145,6 +158,19 @@ export async function DELETE(
         documentId,
         authorId: userId,
         content: `[REJECTION] ${rejectionNote}`,
+      },
+    });
+  }
+
+  // EF8: Notify the document uploader about rejection
+  if (document.uploadedBy !== userId) {
+    await prisma.notification.create({
+      data: {
+        userId: document.uploadedBy,
+        type: "DOCUMENT_UPLOADED",
+        title: "Document requires revision",
+        message: `Your document "${document.title}" requires revision`,
+        link: `/dashboard/cases/${caseId}/documents`,
       },
     });
   }

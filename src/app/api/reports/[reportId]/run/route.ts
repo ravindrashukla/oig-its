@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkPermission, getCaseAccessFilter } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
+import { generateReportHtml } from "@/lib/pdf-generator";
 import type { ReportType } from "@/app/api/reports/route";
 
 // ─── POST: Execute a report ──────────────────────────────────
@@ -39,7 +40,8 @@ export async function POST(
     // body is optional
   }
 
-  const format: "json" | "csv" = body.format === "csv" ? "csv" : "json";
+  const format: "json" | "csv" | "pdf" =
+    body.format === "csv" ? "csv" : body.format === "pdf" ? "pdf" : "json";
   const parameters = body.parameters ?? {};
 
   const startedAt = new Date();
@@ -78,6 +80,24 @@ export async function POST(
     entityId: run.id,
     metadata: { reportId, reportType, format, resultCount: rows.length },
   });
+
+  if (format === "pdf") {
+    const columns = definition.columns as Array<{ key: string; label: string }>;
+    const html = generateReportHtml({
+      title: definition.name,
+      subtitle: definition.description ?? undefined,
+      columns,
+      rows,
+      generatedAt: startedAt,
+    });
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Disposition": `inline; filename="${slugify(definition.name)}-${startedAt.toISOString().slice(0, 10)}.html"`,
+      },
+    });
+  }
 
   if (format === "csv") {
     const columns = definition.columns as Array<{ key: string; label: string }>;
