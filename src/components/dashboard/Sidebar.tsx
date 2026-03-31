@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -24,6 +25,11 @@ import {
   Search,
   Phone,
   DollarSign,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -79,9 +85,68 @@ const sections: { heading: string; items: NavItem[] }[] = [
   },
 ];
 
+const SHORTCUTS_KEY = "oig-its-shortcuts";
+
+const ALL_ROUTES = sections.flatMap((s) => s.items.map((i) => ({ label: i.label, href: i.href })));
+
+interface Shortcut {
+  label: string;
+  href: string;
+}
+
+function loadShortcuts(): Shortcut[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SHORTCUTS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function saveShortcuts(shortcuts: Shortcut[]) {
+  localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
+
+  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
+  const [quickLinksOpen, setQuickLinksOpen] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState("");
+
+  useEffect(() => {
+    setShortcuts(loadShortcuts());
+  }, []);
+
+  const handleAddShortcut = useCallback(() => {
+    if (!selectedRoute) return;
+    const route = ALL_ROUTES.find((r) => r.href === selectedRoute);
+    if (!route) return;
+    // Prevent duplicates
+    if (shortcuts.some((s) => s.href === route.href)) {
+      setAddDialogOpen(false);
+      setSelectedRoute("");
+      return;
+    }
+    const updated = [...shortcuts, { label: route.label, href: route.href }];
+    setShortcuts(updated);
+    saveShortcuts(updated);
+    setAddDialogOpen(false);
+    setSelectedRoute("");
+  }, [selectedRoute, shortcuts]);
+
+  const handleRemoveShortcut = useCallback(
+    (href: string) => {
+      const updated = shortcuts.filter((s) => s.href !== href);
+      setShortcuts(updated);
+      saveShortcuts(updated);
+    },
+    [shortcuts],
+  );
 
   return (
     <aside
@@ -155,7 +220,120 @@ export default function Sidebar() {
             </ul>
           </div>
         ))}
+
+        {/* Quick Links section (WPN10) */}
+        {!sidebarCollapsed && (
+          <div>
+            <button
+              onClick={() => setQuickLinksOpen(!quickLinksOpen)}
+              className="mb-1 flex w-full items-center gap-1 px-2 text-[10px] font-semibold tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              {quickLinksOpen ? (
+                <ChevronDown className="size-3" />
+              ) : (
+                <ChevronRight className="size-3" />
+              )}
+              QUICK LINKS
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAddDialogOpen(true);
+                }}
+                className="ml-auto rounded p-0.5 hover:bg-sidebar-accent"
+              >
+                <Plus className="size-3" />
+              </button>
+            </button>
+            {quickLinksOpen && (
+              <ul className="space-y-0.5">
+                {shortcuts.length === 0 && (
+                  <li className="px-2 py-1 text-xs text-muted-foreground">
+                    No quick links yet
+                  </li>
+                )}
+                {shortcuts.map((s) => {
+                  const active = pathname === s.href;
+                  return (
+                    <li key={s.href} className="group flex items-center">
+                      <Link
+                        href={s.href}
+                        className={cn(
+                          "flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+                          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          active &&
+                            "bg-sidebar-accent text-sidebar-accent-foreground",
+                        )}
+                      >
+                        <Star className="size-3.5 shrink-0" />
+                        <span className="truncate">{s.label}</span>
+                      </Link>
+                      <button
+                        onClick={() => handleRemoveShortcut(s.href)}
+                        className="mr-1 hidden rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:block"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
       </nav>
+
+      {/* Add shortcut dialog */}
+      {addDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-sm rounded-lg border bg-background p-4 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Add Quick Link</h3>
+              <button
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  setSelectedRoute("");
+                }}
+                className="rounded p-1 hover:bg-muted"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <select
+              value={selectedRoute}
+              onChange={(e) => setSelectedRoute(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm mb-3"
+            >
+              <option value="">Select a page...</option>
+              {ALL_ROUTES.filter(
+                (r) => !shortcuts.some((s) => s.href === r.href),
+              ).map((r) => (
+                <option key={r.href} value={r.href}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  setSelectedRoute("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!selectedRoute}
+                onClick={handleAddShortcut}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { checkPermission, getCaseAccessFilter } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { updateCaseSchema } from "@/lib/validators/case";
+import { isFieldEditable } from "@/lib/field-permissions";
 import type { CaseStatus, CaseType, Priority, UserRole } from "@/generated/prisma";
 
 // ─── GET: Fetch a single case with full details ─────────
@@ -141,6 +142,24 @@ export async function PATCH(
   }
 
   const data = parsed.data;
+
+  // ─── Field-level permission checks (DMR2) ────────────────
+  const updatedFields = Object.keys(data).filter(
+    (k) => (data as any)[k] !== undefined && k !== "reason" && k !== "routeTo" && k !== "isDraft",
+  );
+  const restrictedFields = updatedFields.filter(
+    (field) => !isFieldEditable(role, existingCase.status, field),
+  );
+  if (restrictedFields.length > 0) {
+    return Response.json(
+      {
+        error: "Field-level permission denied",
+        restrictedFields,
+        message: `Your role (${role}) cannot edit the following fields when the case status is ${existingCase.status}: ${restrictedFields.join(", ")}`,
+      },
+      { status: 403 },
+    );
+  }
 
   // ─── Case locking checks ─────────────────────────────────
   const lockRoles: UserRole[] = ["ADMIN", "SUPERVISOR"];

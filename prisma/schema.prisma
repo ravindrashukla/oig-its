@@ -192,6 +192,7 @@ model User {
   reportReviews           ReportReview[]           @relation("ReportReviewer")
   subpoenaApprovals       SubpoenaPackage[]        @relation("SubpoenaApprover")
   courseEvaluations        CourseEvaluation[]
+  preferences             UserPreference[]
 
   @@index([email])
   @@index([organizationId])
@@ -1235,4 +1236,20 @@ model CourseEvaluation {
 
   @@unique([courseId, userId])
   @@index([courseId])
+}
+
+// ─── User Preferences (RRS8/WPN10) ─────────────────────
+
+model UserPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String   // e.g., "columns:cases", "columns:tasks", "columns:evidence", "shortcuts"
+  value     Json     // e.g., ["caseNumber", "title", "status", "priority"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, key])
+  @@index([userId])
 }
