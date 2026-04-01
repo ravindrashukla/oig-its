@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { publicHotlineSchema } from "@/lib/validators/inquiry";
 import { logAudit } from "@/lib/audit";
+import { scoreInquiry } from "@/lib/ai/risk-scoring";
 
 // ─── POST: Public whistleblower complaint submission (no auth) ─
 
@@ -22,6 +23,21 @@ export async function POST(request: Request) {
 
   const inquiryNumber = await generateInquiryNumber();
 
+  // Calculate risk score
+  const risk = scoreInquiry({
+    subject: parsed.data.subject,
+    description: parsed.data.description,
+    source: "WHISTLEBLOWER",
+    category: parsed.data.category || undefined,
+    isAnonymous: parsed.data.isAnonymous ?? false,
+    complainantEmail: parsed.data.isAnonymous ? null : (parsed.data.complainantEmail || null),
+    complainantPhone: parsed.data.isAnonymous ? null : (parsed.data.complainantPhone || null),
+    complainantName: parsed.data.isAnonymous ? null : (parsed.data.complainantName || null),
+  });
+
+  // Whistleblower complaints default to HIGH, escalate to CRITICAL if risk > 75
+  const priority = risk.score > 75 ? "CRITICAL" : "HIGH";
+
   const inquiry = await prisma.preliminaryInquiry.create({
     data: {
       inquiryNumber,
@@ -33,7 +49,9 @@ export async function POST(request: Request) {
       complainantPhone: parsed.data.isAnonymous ? null : (parsed.data.complainantPhone || null),
       isAnonymous: parsed.data.isAnonymous ?? false,
       category: parsed.data.category || null,
-      priority: "HIGH", // Whistleblower complaints default to HIGH priority
+      priority,
+      riskScore: risk.score,
+      riskFactors: risk.factors as any,
     },
   });
 

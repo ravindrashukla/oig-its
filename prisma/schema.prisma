@@ -411,6 +411,8 @@ model Document {
   approvedById     String?
   approvedAt       DateTime?
   subjectId        String?            // CM19: Associate legal docs with entities
+  aiCategory       String?            // AI auto-classification category
+  aiTags           String?            // AI auto-generated tags (comma-separated)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
@@ -1085,6 +1087,8 @@ model PreliminaryInquiry {
   description     String
   category        String?
   priority        String   @default("MEDIUM")
+  riskScore       Int?
+  riskFactors     Json?
   assignedToId    String?
   convertedCaseId String?  @unique
   responseMessage String?

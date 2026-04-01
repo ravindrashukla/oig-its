@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { checkPermission, getCaseAccessFilter } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { buildFileKey, uploadFile, deleteFile } from "@/lib/minio";
+import { classifyDocument } from "@/lib/ai/document-classifier";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
@@ -227,6 +228,26 @@ export async function POST(
       _count: { select: { comments: true, accessLogs: true } },
     },
   });
+
+  // AI auto-classification (DMR1, EF5, EF7)
+  try {
+    const classification = classifyDocument(
+      title || file.name,
+      file.name,
+      file.type,
+      file.size,
+    );
+    await prisma.document.update({
+      where: { id: document.id },
+      data: {
+        aiCategory: classification.category,
+        aiTags: classification.suggestedTags.join(","),
+      },
+    });
+  } catch (classifyErr) {
+    console.error("[document:upload] AI classification failed:", classifyErr);
+    // Non-blocking — continue even if classification fails
+  }
 
   // CM20: Handle multi-file attachments
   const attachmentFiles = formData.getAll("attachments") as File[];
