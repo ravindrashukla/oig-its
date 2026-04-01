@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -32,6 +32,7 @@ const priorityVariant: Record<string, "default" | "secondary" | "destructive" | 
 };
 
 export default function ApprovalsPage() {
+  useEffect(() => { document.title = "Approvals | OIG-ITS"; }, []);
   const { data: approvals, isLoading } = usePendingApprovals();
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Search, X, SlidersHorizontal, ArrowRightLeft } from "lucide-react";
 import { format } from "date-fns";
 
@@ -217,6 +217,7 @@ function enumLabel(value: string): string {
 // ─── Page component ─────────────────────────────────────────
 
 export default function InquiriesPage() {
+  useEffect(() => { document.title = "Inquiries | OIG-ITS"; }, []);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [source, setSource] = useState<string | undefined>();

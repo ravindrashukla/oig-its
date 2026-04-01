@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, X, Users } from "lucide-react";
 import { format } from "date-fns";
 
@@ -113,6 +113,7 @@ function enumLabel(value: string): string {
 // ─── Page component ───────────────────────────────────────
 
 export default function UsersPage() {
+  useEffect(() => { document.title = "Users | OIG-ITS"; }, []);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [role, setRole] = useState<string | undefined>();

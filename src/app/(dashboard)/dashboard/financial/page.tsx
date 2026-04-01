@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -26,6 +27,7 @@ function formatPercent(value: number): string {
 }
 
 export default function FinancialPage() {
+  useEffect(() => { document.title = "Financial | OIG-ITS"; }, []);
   const { data, isLoading } = useFinancialAnalytics();
 
   return (

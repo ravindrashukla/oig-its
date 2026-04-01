@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Search, X, SlidersHorizontal, Package, Box, Archive, UserCheck } from "lucide-react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -167,6 +167,7 @@ const columns: ColumnDef<InventoryItemRow>[] = [
 // ─── Page component ─────────────────────────────────────
 
 export default function InventoryPage() {
+  useEffect(() => { document.title = "Inventory | OIG-ITS"; }, []);
   const [activeTab, setActiveTab] = useState("all-items");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

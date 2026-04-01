@@ -114,7 +114,12 @@ function saveShortcuts(shortcuts: Shortcut[]) {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed, toggleSidebar, mobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname, setMobileSidebarOpen]);
 
   const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
   const [quickLinksOpen, setQuickLinksOpen] = useState(true);
@@ -152,10 +157,21 @@ export default function Sidebar() {
   );
 
   return (
+    <>
+      {/* Mobile backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-        sidebarCollapsed ? "w-16" : "w-[232px]"
+        "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-200",
+        sidebarCollapsed ? "w-16" : "w-[232px]",
+        // Mobile: fixed overlay, hidden by default
+        "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-[232px] max-md:shadow-xl",
+        mobileSidebarOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
       )}
     >
       {/* Logo */}
@@ -349,5 +365,6 @@ export default function Sidebar() {
         <Image src="/ypoint-logo.png" alt="Y Point" width={sidebarCollapsed ? 24 : 56} height={sidebarCollapsed ? 12 : 28} className="opacity-40 dark:invert" />
       </div>
     </aside>
+    </>
   );
 }

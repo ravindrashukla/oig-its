@@ -79,6 +79,7 @@ function categoryLabel(cat: string): string {
 // ─── Page Component ───────────────────────────────────────────
 
 export default function AIInsightsPage() {
+  useEffect(() => { document.title = "AI Insights | OIG-ITS"; }, []);
   const [duplicates, setDuplicates] = useState<DuplicatePair[]>([]);
   const [hubs, setHubs] = useState<NetworkHub[]>([]);
   const [fraudRings, setFraudRings] = useState<FraudRing[]>([]);

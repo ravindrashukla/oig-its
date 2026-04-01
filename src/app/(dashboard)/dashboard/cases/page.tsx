@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, SlidersHorizontal, Plus } from "lucide-react";
@@ -139,6 +139,7 @@ function enumLabel(value: string): string {
 // ─── Page component ────────────────────────────────────────
 
 export default function CasesPage() {
+  useEffect(() => { document.title = "Cases | OIG-ITS"; }, []);
   const router = useRouter();
 
   const [search, setSearch] = useState("");

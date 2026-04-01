@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
   GraduationCap,
@@ -258,6 +258,7 @@ const assignmentColumns: ColumnDef<TrainingAssignment>[] = [
 // ─── Page component ──────────────────────────────────────
 
 export default function TrainingPage() {
+  useEffect(() => { document.title = "Training | OIG-ITS"; }, []);
   const { data: session } = useSession();
   const role = session?.user?.role;
   const isAdminOrSupervisor = role === "ADMIN" || role === "SUPERVISOR";

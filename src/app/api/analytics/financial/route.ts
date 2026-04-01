@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkPermission, getCaseAccessFilter } from "@/lib/rbac";
+import { cacheGet, cacheSet } from "@/lib/cache";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -14,6 +15,10 @@ export async function GET() {
   if (!checkPermission(role, "case:read")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const cacheKey = `analytics:financial:${role}:${userId}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return Response.json(cached);
 
   const accessFilter = getCaseAccessFilter(role, userId);
   const now = new Date();
@@ -209,7 +214,7 @@ export async function GET() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, amount]) => ({ month, amount }));
 
-  return Response.json({
+  const payload = {
     totalRecoveries,
     totalFines,
     totalRestitution,
@@ -219,5 +224,8 @@ export async function GET() {
     byCase,
     bySubject,
     byPeriod,
-  });
+  };
+
+  cacheSet(cacheKey, payload, 300); // 5 minutes
+  return Response.json(payload);
 }

@@ -5,6 +5,7 @@ import {
   buildInvestigationNetwork,
   detectFraudRings,
 } from "@/lib/ai/network-analysis";
+import { cacheGet, cacheSet } from "@/lib/cache";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -18,19 +19,26 @@ export async function GET(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const cacheKey = `ai:network:${role}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return Response.json(cached);
+
   try {
     const [network, fraudRings] = await Promise.all([
       buildInvestigationNetwork(),
       detectFraudRings(),
     ]);
 
-    return Response.json({
+    const payload = {
       nodes: network.nodes,
       edges: network.edges,
       hubs: network.hubs,
       fraudRings,
       components: network.components,
-    });
+    };
+
+    cacheSet(cacheKey, payload, 600); // 10 minutes
+    return Response.json(payload);
   } catch (err) {
     console.error("[ai/network] Error:", err);
     return Response.json(

@@ -1,9 +1,10 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { Search, LogOut, User } from "lucide-react";
+import { Search, LogOut, User, Menu } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +15,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import CommandPalette from "@/components/search/CommandPalette";
+import { useUIStore } from "@/stores/uiStore";
 
 export default function Header() {
   const { data: session } = useSession();
   const user = session?.user;
+  const toggleMobileSidebar = useUIStore((s) => s.toggleMobileSidebar);
 
   const initials = user?.displayName
     ? user.displayName
@@ -30,11 +33,21 @@ export default function Header() {
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-background px-4">
-      {/* Search trigger */}
+      {/* Mobile hamburger */}
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className="md:hidden shrink-0"
+        onClick={toggleMobileSidebar}
+      >
+        <Menu className="size-5" />
+      </Button>
+
+      {/* Search trigger — hidden on mobile */}
       <button
         type="button"
         onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
-        className="relative flex flex-1 max-w-md items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
+        className="relative hidden md:flex flex-1 max-w-md items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
       >
         <Search className="size-4" />
         <span>Search cases, evidence, documents...</span>

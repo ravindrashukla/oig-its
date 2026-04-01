@@ -105,6 +105,10 @@ export default function DashboardPage() {
   const [editVisible, setEditVisible] = useState<Set<WidgetId>>(new Set());
 
   useEffect(() => {
+    document.title = "Dashboard | OIG-ITS";
+  }, []);
+
+  useEffect(() => {
     setLayout(loadLayout());
   }, []);
 
@@ -165,13 +169,13 @@ export default function DashboardPage() {
       case "metrics":
         return (
           <div key="metrics" className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <MetricCard title="Total Cases" value={metrics?.totalCases} icon={FolderOpen} loading={metricsLoading} />
               <MetricCard title="Active Cases" value={metrics?.activeCases} icon={ShieldAlert} loading={metricsLoading} accent="text-amber-600" />
               <MetricCard title="Critical" value={metrics?.criticalCases} icon={AlertTriangle} loading={metricsLoading} accent="text-destructive" />
               <MetricCard title="Closed" value={metrics?.closedCases} icon={CheckCircle2} loading={metricsLoading} accent="text-emerald-600" />
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
               <MetricCard title="Overdue Tasks" value={metrics?.overdueTasks} icon={ListTodo} loading={metricsLoading} accent="text-destructive" />
               <MetricCard title="Deadlines This Week" value={metrics?.upcomingDeadlines} icon={Clock} loading={metricsLoading} />
               <MetricCard title="Unread Notifications" value={metrics?.unreadNotifications} icon={Bell} loading={metricsLoading} accent="text-blue-600" />

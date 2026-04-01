@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, X, ScrollText } from "lucide-react";
 import { format } from "date-fns";
 
@@ -134,6 +134,7 @@ const ACTIONS = [
 // ─── Page component ───────────────────────────────────────
 
 export default function AuditLogPage() {
+  useEffect(() => { document.title = "Audit Log | OIG-ITS"; }, []);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [action, setAction] = useState<string | undefined>();

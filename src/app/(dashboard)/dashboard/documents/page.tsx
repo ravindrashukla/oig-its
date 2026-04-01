@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, FileText } from "lucide-react";
 import { useCases } from "@/hooks/useCases";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 export default function DocumentsPage() {
+  useEffect(() => { document.title = "Documents | OIG-ITS"; }, []);
   const router = useRouter();
   const [search, setSearch] = useState("");
   const { data, isLoading } = useCases({ page: 1, pageSize: 50 });

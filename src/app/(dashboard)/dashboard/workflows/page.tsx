@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { GitBranch, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -126,6 +126,7 @@ const STATUSES = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 // ─── Page component ───────────────────────────────────────
 
 export default function WorkflowsPage() {
+  useEffect(() => { document.title = "Workflows | OIG-ITS"; }, []);
   const [status, setStatus] = useState<string | undefined>();
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,

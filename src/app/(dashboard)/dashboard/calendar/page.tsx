@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -241,6 +241,7 @@ function DayDetail({
 // ─── Main Page ──────────────────────────────────────────
 
 export default function CalendarPage() {
+  useEffect(() => { document.title = "Calendar | OIG-ITS"; }, []);
   const [formOpen, setFormOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",

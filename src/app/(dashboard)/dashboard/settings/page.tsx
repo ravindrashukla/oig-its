@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Settings2, Save, Loader2, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 
@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 // ─── Page component ───────────────────────────────────────
 
 export default function SettingsPage() {
+  useEffect(() => { document.title = "Settings | OIG-ITS"; }, []);
   const { data: settingsData, isLoading: settingsLoading } = useSettings();
   const { data: refData, isLoading: refLoading } = useReferenceData();
 

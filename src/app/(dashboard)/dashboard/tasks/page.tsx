@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, SlidersHorizontal, LayoutGrid, List, ClipboardList, UserPlus } from "lucide-react";
 import { format, differenceInDays, isPast } from "date-fns";
@@ -146,6 +146,7 @@ function enumLabel(value: string): string {
 // ─── Page component ────────────────────────────────────────
 
 export default function TasksPage() {
+  useEffect(() => { document.title = "Tasks | OIG-ITS"; }, []);
   const router = useRouter();
 
   const [viewMode, setViewMode] = useState<"table" | "board">("table");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Clock,
   Plus,
@@ -627,6 +627,7 @@ function GenerateTimesheetDialog() {
 // ─── Page component ──────────────────────────────────────────
 
 export default function TimesheetsPage() {
+  useEffect(() => { document.title = "Timesheets | OIG-ITS"; }, []);
   const [activeTab, setActiveTab] = useState<"entries" | "timesheets">(
     "entries",
   );

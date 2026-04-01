@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X, FolderOpen, Package, ClipboardList, FileText, Bookmark, Star, Trash2, CalendarDays, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
@@ -243,6 +243,7 @@ function ResultCard({
 // ─── Page component ─────────────────────────────────────
 
 export default function SearchPage() {
+  useEffect(() => { document.title = "Search | OIG-ITS"; }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";

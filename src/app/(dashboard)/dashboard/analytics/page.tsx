@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   BarChart3,
   FolderOpen,
@@ -81,6 +82,7 @@ function formatPercent(value: number): string {
 // ─── Page component ───────────────────────────────────────
 
 export default function AnalyticsPage() {
+  useEffect(() => { document.title = "Analytics | OIG-ITS"; }, []);
   const { data: analytics, isLoading } = useAnalytics();
 
   const totalCases = analytics?.casesByStatus

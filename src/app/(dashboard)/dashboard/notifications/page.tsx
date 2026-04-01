@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Check, CheckCheck, Mail, MailOpen } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +42,7 @@ const typeColor: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
+  useEffect(() => { document.title = "Notifications | OIG-ITS"; }, []);
   const [page, setPage] = useState(1);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [type, setType] = useState<string | undefined>();
