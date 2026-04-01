@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
+import { Search, X, SlidersHorizontal, Plus } from "lucide-react";
 import { format } from "date-fns";
 
 import { useCases } from "@/hooks/useCases";
@@ -207,8 +208,14 @@ export default function CasesPage() {
         </p>
       </div>
 
-      {/* Search + filter toggle */}
+      {/* Search + filter toggle + New Case */}
       <div className="flex items-center gap-3">
+        <Link href="/dashboard/cases/new">
+          <Button size="sm" className="gap-1.5">
+            <Plus className="size-3.5" />
+            New Case
+          </Button>
+        </Link>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
