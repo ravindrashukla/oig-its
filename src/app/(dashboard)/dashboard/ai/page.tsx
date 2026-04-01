@@ -376,7 +376,7 @@ function AlertsAnomaliesTab() {
           {escalationData?.escalations && escalationData.escalations.length > 0 && (
             <div className="space-y-3">
               {escalationData.escalations.map((e, i) => (
-                <div key={e.caseId || i} className="flex items-center justify-between rounded-lg border p-3">
+                <div key={`${e.caseId}-${i}`} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{e.caseNumber}</span>
