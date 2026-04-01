@@ -388,41 +388,278 @@ Defined in `src/lib/field-permissions.ts`, the system enforces field-level edit 
 
 ## 6. AI/ML Capabilities
 
-The system includes **22 AI algorithms** across two categories: **18 algorithmic (rule-based/statistical)** modules in `src/lib/ai/` and **4 Claude LLM-powered** endpoints.
+The system includes **22 AI algorithms** across two categories: **18 algorithmic (rule-based/statistical)** modules implemented in pure TypeScript (`src/lib/ai/`) and **4 Claude LLM-powered** endpoints using the Anthropic API. All algorithms are accessible via REST API and through the interactive **AI Insights Dashboard** (`/dashboard/ai`) with 7 tabbed sections.
 
-### Algorithmic Modules (src/lib/ai/)
+### 6.1 Anomaly Detection (`src/lib/ai/anomaly-detection.ts`)
 
-| # | Algorithm | File | SOW Ref | Description |
-|---|---|---|---|---|
-| 1 | Anomaly Detection | `anomaly-detection.ts` | RRS24 | Statistical z-score analysis across case data to identify outlier patterns in timelines, financials, and activity |
-| 2 | Risk Scoring | `risk-scoring.ts` | HWC1 | Keyword-weighted risk assessment for incoming complaints; outputs score (0-100), risk level, and contributing factors |
-| 3 | Case Similarity | `case-similarity.ts` | CM4, RRS11 | Cosine similarity over case attributes (type, source, jurisdiction) to find related investigations |
-| 4 | Entity Resolution | `entity-resolution.ts` | EF15, WPN16 | Levenshtein edit-distance matching to detect duplicate subjects across cases |
-| 5 | Predictive Analytics | `predictions.ts` | RRS23 | Duration prediction, outcome probability, and caseload forecasting using historical data regression |
-| 6 | Network Analysis | `network-analysis.ts` | CM49, CM4 | Graph-based analysis of subject-case relationships to identify fraud rings and high-connectivity nodes |
-| 7 | Document Classifier | `document-classifier.ts` | DMR1, EF5 | Rule-based classification of documents into 11 categories with confidence scoring and tag generation |
-| 8 | Investigator Recommender | `investigator-recommender.ts` | C17 | Workload-balanced investigator assignment recommendations based on expertise, caseload, and case type match |
-| 9 | Auto-Escalation | `auto-escalation.ts` | WPN27 | Automated priority escalation recommendations for cases approaching deadlines or with overdue tasks |
-| 10 | Evidence Strength | `evidence-strength.ts` | EF7 | Point-based evidence portfolio grading (A-F) based on diversity, volume, and chain-of-custody completeness |
-| 11 | Complaint Deduplication | `complaint-dedup.ts` | EF15, HWC1 | Keyword overlap and Levenshtein matching to identify duplicate complaints across inquiries and cases |
-| 12 | Timeline Anomalies | `timeline-anomalies.ts` | CM34 | Detection of suspicious activity patterns (weekend activity, after-hours, rapid sequences, large gaps) |
-| 13 | Workload Balancing | `workload-balancing.ts` | RRS23, C17 | Real-time workload scoring per investigator considering active cases, overdue tasks, and critical case count |
-| 14 | Closure Readiness | `closure-readiness.ts` | CM41 | Checklist-based scoring to determine if a case meets all closure requirements |
-| 15 | Financial Patterns | `financial-patterns.ts` | FC1, RRS24 | Pattern mining across financial results to detect round-number clustering, duplicates, and suspicious distributions |
-| 16 | Subject Risk Profiling | `subject-risk.ts` | CM8, CM49 | Multi-factor risk scoring for subjects based on case history, violation count, and recidivism patterns |
-| 17 | Case Narrative | `case-narrative.ts` | RRS16, CM34 | Automated generation of structured case narratives with sections for opening, subjects, investigation, violations, financials, referrals, and status |
-| 18 | Case Clustering | (via `case-similarity.ts`) | RRS11 | Groups similar cases into clusters based on attribute similarity vectors |
+**SOW:** RRS3, RRS22, CM32 | **Endpoint:** `GET /api/ai/anomalies` | **Cache:** 10 min
 
-### Claude LLM-Powered Endpoints
+Three detection functions using z-score statistical analysis:
 
-| # | Endpoint | Purpose |
-|---|---|---|
-| 19 | `/api/ai/natural-search` | Natural language search -- converts plain English queries to structured search parameters |
-| 20 | `/api/ai/analyze-document` | AI-powered document analysis and summarization |
-| 21 | `/api/ai/interview-questions` | Generates case-specific interview questions for investigation preparation |
-| 22 | `/api/ai/generate-report` | AI-assisted investigation report drafting |
+- **Financial Anomalies:** Groups all `FinancialResult` records by type (RECOVERY, FINE, RESTITUTION, SAVINGS), calculates mean and standard deviation per type, flags any result where `amount > mean + 2σ`. Returns anomalies with z-scores and severity (CRITICAL if z > 3, HIGH if z > 2).
+- **Case Anomalies:** Flags cases with: duration exceeding mean + 2σ days open, document count > mean + 2σ, evidence count > mean + 2σ, or financial totals significantly above average.
+- **Activity Anomalies:** Analyzes last 30 days of `AuditLog` entries per user. Flags users with significantly more or fewer entries than average, and users with excessive `ACCESS_DENIED` events.
 
-All Claude-powered features use the `claude-sonnet-4-20250514` model via the `@anthropic-ai/sdk` client (`src/lib/ai/claude-client.ts`) with a 30-second timeout.
+### 6.2 Risk Scoring (`src/lib/ai/risk-scoring.ts`)
+
+**SOW:** HWC1, CM1, C17 | **Endpoint:** `POST /api/ai/risk-score`
+
+Keyword-weighted scoring system producing a score 0–100 with risk level classification:
+
+- **Keyword Analysis (+5 to +20):** Scans description for high-risk terms: "fraud" (+20), "theft" (+15), "bribery" (+15), "retaliation" (+15), "billing" (+10), "kickback" (+10), "safety" (+10), etc.
+- **Source Weight (+5 to +15):** WHISTLEBLOWER=+15, CONGRESSIONAL=+10, HOTLINE=+5.
+- **Contact Information (+5 to +10):** Non-anonymous=+10, has email=+5, has phone=+5.
+- **Description Quality (+5 to +15):** Longer, more detailed descriptions score higher.
+- **Category Match (+10):** High-priority categories (FRAUD, MISCONDUCT) receive bonus.
+- **Output:** `{ score: 0-100, riskLevel: LOW|MEDIUM|HIGH|CRITICAL, factors: [{factor, points, description}] }`
+- **Integration:** Auto-runs on every hotline and whistleblower submission. Scores >75 auto-escalate priority to HIGH or CRITICAL. Risk score stored on `PreliminaryInquiry.riskScore`.
+
+### 6.3 Predictive Analytics (`src/lib/ai/predictions.ts`)
+
+**SOW:** RRS3, RRS12, RRS22 | **Endpoint:** `GET /api/ai/predictions`
+
+Four prediction functions using linear regression on historical case data:
+
+- **`predictCaseDuration(caseData)`:** Predicts days to close based on composite feature scoring of case type, priority, and subject count. Uses historical closed cases to build regression model. Output: predicted days with confidence.
+- **`predictClosureOutcome(caseData)`:** Predicts SUBSTANTIATED vs UNSUBSTANTIATED using nearest-centroid classification with Bayesian prior blending. Input features: case type, evidence count, violation count, financial results.
+- **`predictCaseload()`:** Forecasts next month's new cases using linear regression on 12-month trend of `openedAt` dates.
+- **`identifyAtRiskCases()`:** Flags active cases likely to miss due dates by comparing current progress (tasks completed / total, days remaining) against predicted duration.
+
+### 6.4 Case Similarity & Clustering (`src/lib/ai/case-similarity.ts`)
+
+**SOW:** CM4, RRS11 | **Endpoints:** `GET /api/ai/similar-cases?caseId=`, `GET /api/ai/clusters`
+
+- **Similarity:** Constructs 22-dimensional feature vectors per case: case type (one-hot encoded, 9 dims), priority (ordinal, 1 dim), complaint source (one-hot, 8 dims), plus numeric features (subject count, evidence count, financial total, violation count). Computes cosine similarity between the target case and all other cases. Returns top N most similar with similarity score (0.0–1.0) and shared features.
+- **Clustering:** Implements k-means clustering (k=5) with Euclidean distance on the same feature vectors. Each cluster is labeled with its most common case type and complaint source. Iterates until convergence or 100 iterations.
+
+### 6.5 Duplicate Entity Resolution (`src/lib/ai/entity-resolution.ts`)
+
+**SOW:** EF15, WPN16 | **Endpoint:** `GET /api/ai/duplicate-subjects`
+
+Multi-method fuzzy matching to detect duplicate subjects across the entire database:
+
+- **Levenshtein Distance:** Edit distance algorithm implemented from scratch. Names with distance < 3 edits are flagged as potential matches.
+- **Soundex Phonetic Matching:** Classic Soundex algorithm implemented from scratch (letter → code mapping: B/F/P/V→1, C/G/J/K/Q/S/X/Z→2, D/T→3, L→4, M/N→5, R→6). Subjects with matching Soundex codes are flagged regardless of spelling.
+- **Email Domain Matching:** Subjects sharing the same email domain are flagged.
+- **Address Similarity:** Partial string matching on address fields.
+- **Confidence Score:** Combined weighted score 0.0–1.0 from all matching methods. Pairs with confidence > 0.3 are returned.
+
+### 6.6 Network Analysis (`src/lib/ai/network-analysis.ts`)
+
+**SOW:** CM49, CM4, WPN16 | **Endpoint:** `GET /api/ai/network` | **Cache:** 10 min
+
+Graph-based analysis of investigation relationships:
+
+- **Graph Construction:** Builds an undirected graph where nodes = subjects + cases, edges = subject-case links (via `CaseSubject`) + case-case relationships (via `CaseRelationship`) + implicit shared-subject links between cases.
+- **Node Degree:** Calculates connection count per node. High-degree nodes are "hubs" — subjects or cases central to multiple investigations.
+- **Connected Components:** BFS traversal identifies isolated clusters of related entities. Each component represents a distinct group of linked investigations.
+- **Fraud Ring Detection:** Identifies subjects appearing in 2 or more cases together. Groups of co-occurring subjects across multiple cases are flagged as potential organized fraud rings. Returns ring members and linked case IDs.
+
+### 6.7 Document Classification (`src/lib/ai/document-classifier.ts`)
+
+**SOW:** DMR1, EF5, EF7 | **Endpoint:** `POST /api/ai/classify-document`
+
+Rule-based document classification into 8 categories with auto-tagging:
+
+- **Classification Rules (regex on title/filename):** "subpoena"→LEGAL_SUBPOENA (0.9), "interview"/"MOI"/"memorandum"→INTERVIEW_MEMO (0.85), "report"/"ROI"→INVESTIGATION_REPORT (0.8), "invoice"/"receipt"/"billing"→FINANCIAL_RECORD (0.85), "photo"/"image"/"screenshot"→PHOTOGRAPHIC_EVIDENCE (0.9), "email"/"correspondence"→CORRESPONDENCE (0.75), "contract"/"agreement"→CONTRACT (0.8), "warrant"/"affidavit"→COURT_DOCUMENT (0.85), default→GENERAL_DOCUMENT (0.5).
+- **MIME Type Boost:** Image MIMEs boost PHOTOGRAPHIC_EVIDENCE confidence. Audio/video boost TESTIMONY.
+- **Auto-Tagging:** Extracts dollar amounts (`$X,XXX`), dates, case numbers (`OIG-XXXX-XXX`), agency names (FBI, DOJ, SEC, etc.), and PII indicators.
+- **Integration:** Runs automatically on every document upload. Results stored in `Document.aiCategory` and `Document.aiTags`.
+
+### 6.8 Investigator Recommendation Engine (`src/lib/ai/investigator-recommender.ts`)
+
+**SOW:** CM3, WPN19 | **Endpoint:** `POST /api/ai/recommend-investigator`
+
+Multi-factor scoring to recommend the best investigator for a new case:
+
+- **Expertise Match (30 pts):** Ratio of past cases with the same `caseType` to total assigned cases. An investigator who has handled 10 fraud cases out of 15 total scores 20/30 for a new fraud case.
+- **Current Workload (25 pts):** Inverse of active case count. Fewer active cases = higher score.
+- **Success Rate (25 pts):** Ratio of closed cases to total assigned cases.
+- **Availability (20 pts):** Bonus if no cases have due dates this week.
+- Returns top 3 investigators with total score and individual factor breakdowns.
+
+### 6.9 Auto-Escalation Engine (`src/lib/ai/auto-escalation.ts`)
+
+**SOW:** CM35, WPN13 | **Endpoint:** `GET /api/ai/escalations` | **Cache:** 5 min
+
+Scans all ACTIVE/OPEN cases and recommends priority escalations:
+
+- **Financial Threshold:** Cases with total financial results > $500K and priority != CRITICAL → recommend CRITICAL.
+- **Deadline Proximity:** Cases with due date within 7 days and priority LOW/MEDIUM → recommend HIGH.
+- **Stale Cases:** Cases with no `AuditLog` entries in 14 days → flag as stale requiring attention.
+- **Evidence Gap:** Cases with >10 evidence items but 0 violations recorded → flag for review.
+
+### 6.10 Evidence Strength Scoring (`src/lib/ai/evidence-strength.ts`)
+
+**SOW:** WPN23, AF6 | **Endpoint:** `GET /api/ai/evidence-strength?caseId=`
+
+Point-based scoring system producing a 0–100 score with letter grade:
+
+- **Per-Item Points:** DOCUMENT=+3, PHOTO=+3, DIGITAL=+4, TESTIMONY=+2, PHYSICAL=+5, VIDEO=+4, AUDIO=+3 per item (capped at 40).
+- **Custody Chain Completeness (+10):** All evidence items have ≥2 chain-of-custody entries.
+- **Type Diversity (+15):** Evidence from 3+ different types.
+- **Source Corroboration (+10):** Evidence from different sources.
+- **Timeline Coverage (+5):** Evidence dates span >30 days.
+- **Grading:** A=80+, B=65+, C=50+, D=35+, F=<35.
+
+### 6.11 Timeline Anomaly Detection (`src/lib/ai/timeline-anomalies.ts`)
+
+**SOW:** CM14, AF4 | **Endpoint:** `GET /api/ai/timeline-anomalies?caseId=`
+
+Builds a unified timeline from status changes, notes, documents, evidence, and tasks, then flags:
+
+- **Activity Gaps:** Periods >30 days with no recorded activity (severity: MEDIUM if 30-60 days, HIGH if >60).
+- **Post-Review Evidence:** Evidence collected after case moved to UNDER_REVIEW or later status (severity: HIGH — may indicate procedural irregularity).
+- **Weekend/Holiday Uploads:** Documents uploaded on Saturday or Sunday (severity: LOW — may be legitimate but flagged for awareness).
+- **Rapid Status Changes:** Multiple status changes on the same day (severity: MEDIUM — may indicate testing or errors).
+
+### 6.12 Closure Readiness Scoring (`src/lib/ai/closure-readiness.ts`)
+
+**SOW:** CM40, CM41 | **Endpoint:** `GET /api/ai/closure-readiness?caseId=`
+
+13-criteria checklist scoring system (total 100 points):
+
+| Criterion | Points | Check |
+|-----------|--------|-------|
+| Subjects documented | 15 | ≥1 CaseSubject linked |
+| Violations recorded | 10 | ≥1 Violation |
+| Evidence collected | 10 | ≥1 EvidenceItem |
+| Evidence verified | 5 | Any evidence with VERIFIED status |
+| Financial results | 10 | ≥1 FinancialResult |
+| All tasks complete | 10 | No PENDING/IN_PROGRESS tasks |
+| Referrals resolved | 5 | No PENDING referrals |
+| Techniques logged | 5 | ≥1 InvestigativeTechnique |
+| Case notes >3 | 5 | At least 3 CaseNotes |
+| Supervisor review | 5 | Any workflow with COMPLETED status |
+| Checklist items done | 10 | All required CloseChecklist items completed |
+| Documents >2 | 5 | At least 2 Documents |
+| No pending workflows | 5 | No ACTIVE WorkflowInstances |
+
+Score ≥80 = ready to close. Returns score, ready boolean, and list of missing items.
+
+### 6.13 Complaint Deduplication (`src/lib/ai/complaint-dedup.ts`)
+
+**SOW:** EF15, HWC1 | **Endpoint:** `POST /api/ai/complaint-dedup`
+
+Detects when a new complaint duplicates an existing inquiry or open case:
+
+- **Subject Matching (60% weight):** Levenshtein distance on complaint subject text (imported from `entity-resolution.ts`). Distance normalized to 0–1 similarity.
+- **Keyword Overlap (40% weight):** Tokenizes both descriptions, computes Jaccard similarity coefficient (intersection / union of keyword sets).
+- **Combined Score:** Weighted average, threshold at 0.3 for reporting.
+- **Cross-entity:** Compares against both `PreliminaryInquiry` (last 90 days) and open `Case` records.
+- **Integration:** Auto-runs on every hotline submission. Potential duplicates included in response as `potentialDuplicates`.
+
+### 6.14 Workload Balancing (`src/lib/ai/workload-balancing.ts`)
+
+**SOW:** RRS23, C17 | **Endpoint:** `GET /api/ai/workload`
+
+Per-investigator workload analysis with team-level balancing:
+
+- **Workload Score:** Weighted sum of: active cases (×3), critical cases (×5), pending tasks (×1), overdue tasks (×4), cases due this week (×3).
+- **Statistical Thresholds:** Calculates team mean and standard deviation. Overloaded = score > mean + 1.5σ. Underloaded = score < mean - 1σ.
+- **Supervisor Queues:** Counts pending approval workflow steps per supervisor.
+- **Output:** Per-investigator breakdown, overloaded/underloaded flags, team average, supervisor queue depths.
+
+### 6.15 Financial Pattern Mining (`src/lib/ai/financial-patterns.ts`)
+
+**SOW:** FC1, RRS24 | **Endpoint:** `GET /api/ai/financial-patterns`
+
+Detects suspicious patterns in financial results:
+
+- **Round Numbers:** Flags amounts that are exact multiples of $10K, $50K, or $100K (may indicate fabricated figures).
+- **Just-Below-Threshold:** Flags amounts like $9,999.99 that fall just under common reporting thresholds.
+- **Sequential/Clustered Amounts:** Detects multiple results from the same subject with suspiciously similar amounts.
+- **Outliers (IQR-based):** Calculates interquartile range. Amounts below Q1-1.5×IQR or above Q3+1.5×IQR are flagged.
+- **Weekend/Holiday Dates:** Results with `resultDate` on Saturday or Sunday.
+
+### 6.16 Subject Risk Profiling (`src/lib/ai/subject-risk.ts`)
+
+**SOW:** CM8, CM49 | **Endpoint:** `GET /api/ai/subject-risk`
+
+Multi-factor 0–100 risk scoring per subject:
+
+- **Case Involvement:** +5 per case linked.
+- **Violations:** +10 per violation, +20 if status is SUBSTANTIATED.
+- **Financial Impact (log scale):** $1K=+5, $10K=+10, $100K=+15, $1M+=+25.
+- **Network Hub Score:** Higher score for subjects with many connections (from network analysis).
+- **Repeat Offender:** +15 if subject appears in >2 cases.
+- **Role Escalation:** +10 if subject's role was upgraded (e.g., WITNESS → RESPONDENT across cases).
+- **Risk Levels:** CRITICAL (80+), HIGH (60+), MEDIUM (40+), LOW (<40).
+
+### 6.17 Automated Case Narrative (`src/lib/ai/case-narrative.ts`)
+
+**SOW:** RRS16, CM34 | **Endpoint:** `GET /api/ai/case-narrative?caseId=`
+
+Generates structured plain-English investigation summary from case data:
+
+- **Opening:** "Case [number] is a [type] investigation opened on [date] involving [N] subjects."
+- **Subjects:** Lists all linked subjects with roles and types.
+- **Investigation:** Summarizes techniques employed with dates and findings.
+- **Violations:** Lists documented violations with status and disposition.
+- **Financial Impact:** Totals recoveries, fines, restitution, savings with per-subject breakdown.
+- **Referrals:** Lists agency referrals with status and outcomes.
+- **Status:** Current case status with closure readiness score.
+
+### 6.18 Case Clustering (via `src/lib/ai/case-similarity.ts`)
+
+**SOW:** RRS11 | **Endpoint:** `GET /api/ai/clusters` | **Cache:** 10 min
+
+K-means clustering algorithm grouping all active cases into 5 clusters:
+
+- **Feature Vectors:** Same 22-dimensional vectors as similarity (case type one-hot, priority ordinal, complaint source one-hot, numeric counts).
+- **Algorithm:** Random centroid initialization, iterative assignment/update until convergence or 100 iterations. Euclidean distance metric.
+- **Output:** Cluster ID, label (most common type + source), case count, member case IDs.
+
+### 6.19–6.22 Claude LLM-Powered Endpoints
+
+All Claude-powered features use the `claude-sonnet-4-20250514` model via `@anthropic-ai/sdk` client (`src/lib/ai/claude-client.ts`) with a 30-second timeout. The API key is configured in `.env.local` as `ANTHROPIC_API_KEY`.
+
+#### 6.19 Natural Language Search
+
+**Endpoint:** `POST /api/ai/natural-search`
+
+- **Input:** `{ query: "Show me all fraud cases from 2025 with recoveries over $500K" }`
+- **Process:** Claude translates the natural language query into a structured JSON filter with fields: `status`, `caseType`, `priority`, `dateFrom`, `dateTo`, `search`, `minAmount`.
+- **Execution:** The parsed filters are applied as Prisma `where` clauses against the Case model with RBAC access filters.
+- **Output:** `{ query, filters, results, resultCount }`
+
+#### 6.20 Document Content Analysis
+
+**Endpoint:** `POST /api/ai/analyze-document`
+
+- **Input:** `{ title, content }` — document title and text content.
+- **Process:** Claude analyzes the text and extracts structured intelligence.
+- **Output:** `{ keyFacts, entities, redFlags, classification, recommendedActions, summary }`
+
+#### 6.21 Interview Question Generator
+
+**Endpoint:** `POST /api/ai/interview-questions`
+
+- **Input:** `{ caseType, subjectRole, subjectName?, caseDescription?, knownFacts? }`
+- **Process:** Claude generates role-appropriate questions considering the investigation type and subject's relationship to the case.
+- **Output:** `{ openingQuestions, substantiveQuestions, probeQuestions, closingQuestions, interviewTips }`
+
+#### 6.22 Smart Report Generation
+
+**Endpoint:** `POST /api/ai/generate-report`
+
+- **Input:** `{ caseId, reportType: "summary"|"narrative"|"findings"|"recommendation" }`
+- **Process:** Fetches complete case data (subjects, violations, financials, techniques, referrals, notes, evidence, assignments), sends to Claude with report-type-specific instructions.
+- **Output:** `{ report, wordCount, sections }`
+
+### AI Dashboard UI
+
+All 22 algorithms are accessible through the **AI Insights Dashboard** (`/dashboard/ai`) organized in 7 tabs:
+
+| Tab | Algorithms | Interactive Features |
+|-----|-----------|---------------------|
+| Alerts & Anomalies | Anomaly Detection, Auto-Escalation, Financial Patterns | Auto-loaded alerts with severity badges |
+| Case Intelligence | Similarity, Clustering, Narrative, Closure Readiness | Case ID input, similarity bars, readiness gauge |
+| Evidence & Timeline | Evidence Strength, Timeline Anomalies | Case ID input, letter grade display, timeline cards |
+| Subjects & Network | Duplicate Resolution, Network Analysis, Risk Profiling | Confidence bars, fraud ring display, ranked risk list |
+| Workload & Predictions | Investigator Recommender, Workload Balancing, Predictions | Case type/priority form, workload table, forecast chart |
+| Claude AI | Natural Language Search, Interview Questions, Report Gen, Doc Analysis | Text inputs, generated results display |
+| Risk Scoring | Risk Scoring, Complaint Deduplication | Complaint form with factor breakdown, duplicate checker |
 
 ---
 
