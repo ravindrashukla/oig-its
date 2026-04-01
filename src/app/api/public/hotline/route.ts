@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { publicHotlineSchema } from "@/lib/validators/inquiry";
 import { logAudit } from "@/lib/audit";
 import { scoreInquiry } from "@/lib/ai/risk-scoring";
+import { findDuplicateComplaints } from "@/lib/ai/complaint-dedup";
 
 // ─── POST: Public hotline complaint submission (no auth) ────
 
@@ -64,6 +65,17 @@ export async function POST(request: Request) {
     metadata: { inquiryNumber, source: "HOTLINE", isPublic: true },
   });
 
+  // Check for duplicate complaints
+  let duplicates: Awaited<ReturnType<typeof findDuplicateComplaints>> | null = null;
+  try {
+    duplicates = await findDuplicateComplaints(
+      parsed.data.subject,
+      parsed.data.description,
+    );
+  } catch (err) {
+    console.error("[hotline] Dedup check failed (non-blocking):", err);
+  }
+
   // In production, send auto-response email if complainantEmail provided
   // For now we just note it in the response
   const hasEmail = !parsed.data.isAnonymous && parsed.data.complainantEmail;
@@ -73,6 +85,9 @@ export async function POST(request: Request) {
     message: "Your complaint has been received. It will be reviewed by the Office of Inspector General. Please save your inquiry number for future reference.",
     ...(hasEmail && {
       emailNotice: "A confirmation has been sent to the email address provided.",
+    }),
+    ...(duplicates && duplicates.duplicates.length > 0 && {
+      potentialDuplicates: duplicates.duplicates,
     }),
   }, { status: 201 });
 }
