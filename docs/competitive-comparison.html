@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OIG-ITS — Competitive Feature Comparison</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+  .header { background: linear-gradient(135deg, #0f172a, #1e3a5f); color: white; padding: 3rem 2rem; text-align: center; }
+  .header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+  .header p { opacity: 0.7; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  h2 { font-size: 1.5rem; color: #0f172a; margin: 2rem 0 1rem; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+  th { background: #0f172a; color: white; padding: 0.7rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 0.6rem 0.7rem; border-bottom: 1px solid #e2e8f0; }
+  tr:hover { background: #f1f5f9; }
+  .yes { color: #16a34a; font-weight: 700; }
+  .partial { color: #d97706; font-weight: 600; }
+  .no { color: #dc2626; }
+  .highlight { background: #dbeafe !important; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+  .badge-blue { background: #dbeafe; color: #2563eb; }
+  .badge-green { background: #dcfce7; color: #16a34a; }
+  .badge-amber { background: #fef3c7; color: #d97706; }
+  .section { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; }
+  .card h4 { font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .card p { font-size: 0.8rem; color: #64748b; }
+  .footer { text-align: center; padding: 2rem; color: #64748b; font-size: 0.8rem; border-top: 1px solid #e2e8f0; margin-top: 2rem; }
+  @media print { .header { padding: 1.5rem; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>OIG-ITS — Competitive Feature Comparison</h1>
+  <p>How OIG-ITS compares to leading case management and investigation platforms</p>
+</div>
+
+<div class="container">
+
+<h2>Market Comparison: OIG-ITS vs Leading Platforms</h2>
+
+<table>
+  <tr>
+    <th style="width:25%">Feature Category</th>
+    <th style="width:15%" class="highlight">OIG-ITS<br><span style="font-weight:400;text-transform:none;font-size:0.65rem">Y Point</span></th>
+    <th style="width:15%">Salesforce<br>Shield/Gov</th>
+    <th style="width:15%">Microsoft<br>Dynamics 365</th>
+    <th style="width:15%">i-Sight<br>(now Resolver)</th>
+    <th style="width:15%">CaseIQ<br>(EthicsPoint)</th>
+  </tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">CASE MANAGEMENT</td></tr>
+  <tr><td>Full case lifecycle (7+ statuses)</td><td class="highlight yes">✓ 7 statuses</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>Auto case numbering</td><td class="highlight yes">✓ OIG-YYYY-NNN</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>Case locking / read-only</td><td class="highlight yes">✓ Auto-lock on close</td><td class="partial">◐ Config</td><td class="partial">◐</td><td class="yes">✓</td><td class="partial">◐</td></tr>
+  <tr><td>Pre-close validation checklist</td><td class="highlight yes">✓ 13 criteria</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐</td><td class="no">✗</td></tr>
+  <tr><td>Case relationships / spinoffs</td><td class="highlight yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td></tr>
+  <tr><td>Draft / autosave mode</td><td class="highlight yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Field-level permissions by status</td><td class="highlight yes">✓ Role × Status matrix</td><td class="partial">◐ Complex config</td><td class="partial">◐</td><td class="no">✗</td><td class="no">✗</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">EVIDENCE & DOCUMENTS</td></tr>
+  <tr><td>Chain of custody (immutable)</td><td class="highlight yes">✓ Immutable</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="partial">◐</td></tr>
+  <tr><td>Sequential exhibit labeling</td><td class="highlight yes">✓ EX-001</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td></tr>
+  <tr><td>Document versioning</td><td class="highlight yes">✓ v1, v2, v3...</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+  <tr><td>Supervisory doc approval</td><td class="highlight yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>19+ document templates</td><td class="highlight yes">✓ 19 templates</td><td class="partial">◐ Custom</td><td class="partial">◐</td><td class="partial">◐ 5-10</td><td class="partial">◐</td></tr>
+  <tr><td>ZIP download of case files</td><td class="highlight yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">PUBLIC INTAKE</td></tr>
+  <tr><td>Public hotline (no auth)</td><td class="highlight yes">✓</td><td class="partial">◐ Add-on</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>Whistleblower portal with legal protections</td><td class="highlight yes">✓ WPA cited</td><td class="no">✗</td><td class="no">✗</td><td class="partial">◐</td><td class="yes">✓</td></tr>
+  <tr><td>Anonymous complaint support</td><td class="highlight yes">✓</td><td class="partial">◐</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>Auto risk scoring on intake</td><td class="highlight yes">✓ AI 0-100</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Inquiry → Case conversion</td><td class="highlight yes">✓ One-click</td><td class="partial">◐</td><td class="partial">◐</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">AI / INTELLIGENCE</td></tr>
+  <tr><td>AI algorithms count</td><td class="highlight yes">✓ 22 algorithms</td><td class="partial">◐ Einstein (3-5)</td><td class="partial">◐ Copilot (2-3)</td><td class="no">✗ 0</td><td class="no">✗ 0</td></tr>
+  <tr><td>Anomaly detection</td><td class="highlight yes">✓ Z-score</td><td class="partial">◐ Einstein</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Fraud ring / network detection</td><td class="highlight yes">✓ Graph BFS</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Case similarity / clustering</td><td class="highlight yes">✓ Cosine + K-Means</td><td class="partial">◐ Basic</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Predictive analytics</td><td class="highlight yes">✓ Regression</td><td class="partial">◐ Einstein</td><td class="partial">◐ Copilot</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Natural language search (LLM)</td><td class="highlight yes">✓ Claude AI</td><td class="partial">◐ Einstein</td><td class="partial">◐ Copilot</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>AI report generation</td><td class="highlight yes">✓ Claude AI</td><td class="no">✗</td><td class="partial">◐ Copilot</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Document auto-classification</td><td class="highlight yes">✓ On upload</td><td class="partial">◐ Einstein</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Subject risk profiling</td><td class="highlight yes">✓ 0-100</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Evidence strength scoring</td><td class="highlight yes">✓ A-F grade</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Closure readiness scoring</td><td class="highlight yes">✓ 13 criteria</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Interview question generator</td><td class="highlight yes">✓ Claude AI</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">REPORTING & ANALYTICS</td></tr>
+  <tr><td>Interactive dashboards</td><td class="highlight yes">✓ Recharts</td><td class="yes">✓</td><td class="yes">✓ Power BI</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>Ad-hoc report builder</td><td class="highlight yes">✓ No-code</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td></tr>
+  <tr><td>CSV / Excel / PDF export</td><td class="highlight yes">✓ All 3</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>Financial ROI calculations</td><td class="highlight yes">✓ Auto</td><td class="partial">◐ Custom</td><td class="partial">◐</td><td class="partial">◐</td><td class="no">✗</td></tr>
+  <tr><td>Semiannual Report to Congress</td><td class="highlight yes">✓ Template</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">SECURITY & COMPLIANCE</td></tr>
+  <tr><td>RBAC (6+ roles)</td><td class="highlight yes">✓ 6 roles</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐ 3-4</td></tr>
+  <tr><td>Field-level audit trail</td><td class="highlight yes">✓ Old→New</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+  <tr><td>IP whitelisting</td><td class="highlight yes">✓ CIDR</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+  <tr><td>Login lockout</td><td class="highlight yes">✓ 5 attempts</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  <tr><td>FedRAMP alignment</td><td class="highlight yes">✓</td><td class="yes">✓ Certified</td><td class="yes">✓ Certified</td><td class="partial">◐</td><td class="partial">◐</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">ADDITIONAL MODULES</td></tr>
+  <tr><td>Training management</td><td class="highlight yes">✓ Full module</td><td class="no">✗ Separate</td><td class="no">✗ Separate</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Time & labor tracking</td><td class="highlight yes">✓ + Availability pay</td><td class="no">✗ Separate</td><td class="no">✗ Separate</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Inventory / equipment tracking</td><td class="highlight yes">✓</td><td class="no">✗ Separate</td><td class="no">✗ Separate</td><td class="no">✗</td><td class="no">✗</td></tr>
+  <tr><td>Calendar with recurring reminders</td><td class="highlight yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td><td class="no">✗</td></tr>
+  <tr><td>Delegation system</td><td class="highlight yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">◐</td><td class="no">✗</td></tr>
+
+  <tr><td colspan="6" style="background:#f1f5f9;font-weight:700;font-size:0.8rem;">COST & DEPLOYMENT</td></tr>
+  <tr><td>Per-user licensing</td><td class="highlight" style="color:#16a34a;font-weight:700">No per-user fees</td><td class="no">$150-300/user/mo</td><td class="no">$95-210/user/mo</td><td class="no">$50-100/user/mo</td><td class="no">Custom pricing</td></tr>
+  <tr><td>On-premise deployment</td><td class="highlight yes">✓ Docker</td><td class="no">✗ Cloud only</td><td class="partial">◐</td><td class="yes">✓</td><td class="no">✗ Cloud</td></tr>
+  <tr><td>Open source / customizable</td><td class="highlight yes">✓ Full source</td><td class="no">✗ Proprietary</td><td class="no">✗ Proprietary</td><td class="no">✗ Proprietary</td><td class="no">✗ Proprietary</td></tr>
+  <tr><td>OIG-specific features</td><td class="highlight yes">✓ Purpose-built</td><td class="no">✗ Generic CRM</td><td class="no">✗ Generic CRM</td><td class="partial">◐ Investigation</td><td class="partial">◐ Ethics</td></tr>
+</table>
+
+<h2>OIG-ITS Unique Advantages</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>🤖 22 AI Algorithms</h4>
+    <p>More AI capabilities than any competitor. Fraud ring detection, evidence scoring, predictive analytics, natural language search — no other platform offers this depth.</p>
+  </div>
+  <div class="card">
+    <h4>🏛️ Purpose-Built for OIG</h4>
+    <p>Not a generic CRM adapted for investigations. Every feature designed for OIG-specific workflows: subpoena packages, chain of custody, Title 5 pay calculations.</p>
+  </div>
+  <div class="card">
+    <h4>💰 No Per-User Licensing</h4>
+    <p>Competitors charge $50-300/user/month. OIG-ITS has zero per-user fees. For 30 users: competitors cost $18K-108K/year vs $0 licensing for OIG-ITS.</p>
+  </div>
+  <div class="card">
+    <h4>📞 Public Intake with AI</h4>
+    <p>Only platform with built-in public hotline + whistleblower portal with AI risk scoring, complaint deduplication, and automatic priority escalation.</p>
+  </div>
+  <div class="card">
+    <h4>🔒 Full Source Code</h4>
+    <p>Complete source code ownership. No vendor lock-in. Customize any feature without contractor dependency. Deploy on-premise or in government cloud.</p>
+  </div>
+  <div class="card">
+    <h4>📊 Integrated Modules</h4>
+    <p>Training, timesheets, inventory, calendar built-in. Competitors require separate products at additional cost. One system for everything.</p>
+  </div>
+</div>
+
+<h2>Feature Count Summary</h2>
+
+<table>
+  <tr><th>Platform</th><th>Case Mgmt</th><th>AI/ML</th><th>Public Intake</th><th>Training</th><th>Time Track</th><th>Inventory</th><th>Total Modules</th></tr>
+  <tr class="highlight"><td><strong>OIG-ITS</strong></td><td class="yes">✓</td><td class="yes">22 algos</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td><strong>24+</strong></td></tr>
+  <tr><td>Salesforce Shield</td><td class="yes">✓</td><td class="partial">3-5</td><td class="partial">◐</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td>8-10</td></tr>
+  <tr><td>Microsoft Dynamics</td><td class="yes">✓</td><td class="partial">2-3</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td>6-8</td></tr>
+  <tr><td>i-Sight (Resolver)</td><td class="yes">✓</td><td class="no">0</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td>8-10</td></tr>
+  <tr><td>CaseIQ</td><td class="yes">✓</td><td class="no">0</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td>6-8</td></tr>
+</table>
+
+</div>
+
+<div class="footer">
+  <strong>OIG-ITS</strong> — OPM Office of Inspector General Investigative Tracking System<br>
+  Competitive analysis prepared for evaluation purposes. Competitor data based on publicly available information.<br><br>
+  <strong>Developed by Y Point</strong>
+</div>
+
+</body>
+</html>
