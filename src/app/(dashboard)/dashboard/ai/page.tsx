@@ -310,8 +310,9 @@ function useFetchData<T>(url: string, immediate = true) {
 // ===================================================================
 
 function AlertsAnomaliesTab() {
-  const { data: anomalyData, loading: anomLoading, error: anomError } =
-    useFetchData<{ anomalies: Anomaly[] }>("/api/ai/anomalies");
+  const { data: rawAnomalyData, loading: anomLoading, error: anomError } =
+    useFetchData<{ financialAnomalies: Anomaly[]; caseAnomalies: Anomaly[]; activityAnomalies: Anomaly[] }>("/api/ai/anomalies");
+  const anomalyData = rawAnomalyData ? { anomalies: [...(rawAnomalyData.financialAnomalies || []), ...(rawAnomalyData.caseAnomalies || []), ...(rawAnomalyData.activityAnomalies || [])] } : null;
   const { data: escalationData, loading: escLoading, error: escError } =
     useFetchData<{ escalations: Escalation[] }>("/api/ai/escalations");
   const { data: finData, loading: finLoading, error: finError } =
